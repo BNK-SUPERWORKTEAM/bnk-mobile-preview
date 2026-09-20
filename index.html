@@ -2,266 +2,339 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BNK — Integrated Page</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BNK Integrated Page</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap">
 <style>
 /* ===========================================================
-   Figma: 통합페이지 / 1920 x 1080 기준. 모든 수치는 피그마 원본 px.
-   화면 크기 대응은 stage 전체 scale 로만 처리 (비율 고정).
+   피그마 통합페이지(1920x1080) 기준.
+   가로 = vw 비율 / 세로 = % 비율 / 요소 크기 = --s 배율
+   스크롤 순서: 피더린 -> 바루랩 -> 탐뷰티
    =========================================================== */
 :root{
-  --pyderin:#9B2246;
-  --tam:#61CCEB;
-  --barulab:#DFDFDF;
-  --shot-bg:#C4C4C4;
-
-  /* 모션: 강약 조절 */
-  --e-expo:cubic-bezier(.16,1,.3,1);      /* 들어와서 감속하며 안착 */
-  --e-quart:cubic-bezier(.76,0,.24,1);    /* 밀려나갈 때 가속-감속 */
+  --s:1;                       /* min(vw/1920, vh/1080) — JS가 설정 */
+  --e-expo:cubic-bezier(.16,1,.3,1);
+  --e-quart:cubic-bezier(.76,0,.24,1);
+  --e-soft:cubic-bezier(.22,.85,.28,1);
   --d-panel:950ms;
   --d-cover:900ms;
+
+  --t-logo:300ms;  --step-logo:3ms;
+  --t-desc:640ms;  --step-char:14ms;
+  --t-cta:1060ms;
+
+  --w-active:66.927vw;   /* 1285/1920 */
+  --w-peek:33.073vw;     /*  635/1920 */
+  --w-cover:50vw;        /*  960/1920 */
+  --w-frame:calc(var(--w-active) + 1px);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;background:#fff;overflow:hidden}
 body{font-family:Pretendard,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-img{display:block}
+img,video{display:block}
 a{color:inherit;text-decoration:none}
-
-/* 1920x1080 스테이지를 화면에 꽉 차게 스케일 */
-.stage{
-  position:fixed;left:50%;top:50%;
-  width:1920px;height:1080px;
-  transform:translate(-50%,-50%) scale(var(--k,1));
-  transform-origin:50% 50%;
-  background:#fff;overflow:hidden;
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 
-/* ---------- 슬라이더(풀블리드, 항상 바닥에 깔림) ---------- */
+.stage{position:fixed;inset:0;width:100vw;height:100vh;background:#fff;overflow:hidden}
 .slider{position:absolute;inset:0}
 .panel{
-  position:absolute;left:0;top:0;height:1080px;
-  width:var(--w);transform:translateX(var(--x));
+  position:absolute;left:0;top:0;height:100%;
+  width:var(--wf, var(--w-frame));
+  transform:translateX(var(--x));
   background:var(--bg);overflow:hidden;
-  transition:width var(--d-panel) var(--e-expo),
-             transform var(--d-panel) var(--e-expo);
-  transition-delay:var(--delay,0ms);
-  will-change:width,transform;
+  transition:transform var(--d-panel) var(--e-expo);
+  will-change:transform;
 }
-/* 이미지 밴드 */
+
+/* 이미지 밴드 — 2중 구조.
+   .fill : 프레임 전폭. 전환 중 .crop 폭이 한 프레임 늦어도 같은 사진이 깔려 있어
+           빈 여백(브랜드 색)이 절대 드러나지 않는다.
+   .crop : 피그마 실측 사진 박스(600x450 / 240x300 / 120x240 / 635x586 / 1285x723).
+           이 박스 비율이 곧 사진 비율이므로 피그마와 동일하게 보인다. */
 .band{
   position:absolute;left:0;width:100%;
   top:var(--by);height:var(--bh);
-  background:var(--shot-bg);overflow:hidden;
+  background:#C4C4C4;overflow:hidden;
   transition:top var(--d-panel) var(--e-expo),
              height var(--d-panel) var(--e-expo);
-  transition-delay:var(--delay,0ms);
 }
-.band img{width:100%;height:100%;object-fit:cover;object-position:var(--op,50% 50%)}
-
-/* 활성 슬라이드에만 노출되는 요소들 */
-.panel .logo,.panel .desc,.panel .cta{
-  opacity:0;transform:translateY(18px);pointer-events:none;
-  transition:opacity 520ms var(--e-expo),transform 640ms var(--e-expo);
+.band .fill{
+  position:absolute;inset:0;
+  background-image:var(--shot);background-size:cover;
+  background-position:50% var(--opy,50%);
 }
-.panel.is-active .logo{opacity:1;transform:none;transition-delay:180ms}
-.panel.is-active .desc{opacity:1;transform:none;transition-delay:260ms}
-.panel.is-active .cta {opacity:1;transform:none;transition-delay:340ms;pointer-events:auto}
+.band .crop{
+  position:absolute;left:0;top:0;height:100%;width:var(--bw);overflow:hidden;
+  transition:width var(--d-panel) var(--e-expo);
+}
+.band .crop>*{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:50% var(--opy,50%);
+  transition:object-position var(--d-panel) var(--e-expo),opacity 420ms linear;
+}
+/* 탐뷰티: 이미지 10장이 아래에서 위로 올라오며 교체되는 무한 롤 */
+.band .crop .roll{
+  position:absolute;left:0;top:0;width:100%;height:100%;
+  display:flex;flex-direction:column;will-change:transform;
+}
+.band .crop .main{overflow:hidden}
+.band .crop .roll img{
+  position:static;flex:none;width:100%;height:100%;
+  object-fit:cover;object-position:50% var(--opy,50%);
+}
 
-.logo{position:absolute}
-/* 피그마 실측값 */
-.p0 .logo{left:112px;top:783px;width:531px;height:153px}
-.p1 .logo{left:120px;top:756px;width:439px;height:204px}
-.p2 .logo{left:121px;top:802px;width:596px;height:82px}
-.logo img{width:100%;height:100%;object-fit:contain;object-position:left center}
+/* 피더린만 사진(peek)과 영상(활성)이 다르므로 교차 전환 */
+.panel.has-alt .main{opacity:0}
+.panel.has-alt.is-active .main{opacity:1}
+.panel.has-alt.is-active .alt{opacity:0}
 
+/* 쌓임 순서: 바닥(흰색) < 브랜드 바 < 컬럼 이미지 < 원래 이미지
+   -> 브랜드 바가 위로 올라가면 원래 이미지 뒤로 가려진다 */
+.floor{position:absolute;inset:0;background:#fff;opacity:var(--fo,0);z-index:0}
+.band{z-index:3}
+.ext{position:absolute;left:0;width:100%;overflow:hidden;background:#C4C4C4;z-index:1}
+.ext img{width:100%;height:100%;object-fit:cover;object-position:50% var(--oy,50%)}
+/* 브랜드 바 — 색·로고·문구·버튼 한 덩어리. 변형 중엔 통째로 위로 올라가 가려진다 */
+.label{
+  position:absolute;left:0;width:100%;z-index:2;
+  display:block;color:inherit;text-decoration:none;cursor:pointer;pointer-events:none;
+  top:var(--bar-top,66.944%);height:var(--bar-h,33.056%);
+  background:var(--bg);
+  transform:translateY(var(--ly,0px));
+}
+
+/* 변형 중에는 트랜지션을 끈다 — 매 프레임 값을 직접 쓰므로
+   트랜지션이 걸려 있으면 밴드만 950ms 뒤처져 이미지 사이가 벌어진다 */
+.panel.morphing .band,
+.panel.morphing .band .crop,
+.panel.morphing .band img,
+.panel.morphing .band video,
+.panel.morphing .ext,
+.panel.morphing .label{transition:none!important}
+
+/* ---------- 로고: 64조각 파도 ----------
+   마스크는 로고 박스 하나만. 조각은 clip-path로 좌우만 잘라
+   세로는 자유롭게 흐르므로 조각별 잘린 가장자리(계단)가 없다. */
+.logo{position:absolute;display:flex;align-items:flex-end;overflow:hidden;--n:64;
+      background-repeat:no-repeat;background-size:100% 100%}
+/* 파도가 끝나면 조각을 감추고 원본 이미지 한 장으로 교체 —
+   조각 경계(소수점 반올림으로 생기는 세로 줄)가 정지 상태에서 보이지 않게 */
+.logo.settled{background-image:var(--src)}
+.logo.settled .sl{visibility:hidden}
+.logo .sl{width:calc(100% / var(--n));height:100%;flex:none;clip-path:inset(-300% 0 -300% 0)}
+.logo .sl i{
+  display:block;height:100%;
+  width:calc(100% * var(--n));
+  margin-left:calc(var(--i) * -100%);
+  background-repeat:no-repeat;background-size:100% 100%;
+  transform:translateY(100%);opacity:0;
+  transition:transform 840ms var(--e-soft),opacity 300ms linear;
+}
+.panel.is-active .logo .sl i{
+  transform:none;opacity:1;
+  transition-delay:calc(var(--t-logo) + var(--i) * var(--step-logo));
+}
+
+/* ---------- 문구: 글자 단위 파도 ---------- */
 .desc{
-  position:absolute;top:795px;
-  font-size:22px;line-height:32px;letter-spacing:-0.44px;
+  position:absolute;
+  font-size:calc(22 * var(--s) * 1px);
+  line-height:calc(32 * var(--s) * 1px);
+  letter-spacing:calc(-0.44 * var(--s) * 1px);
   font-weight:400;white-space:nowrap;
 }
-.p0 .desc{left:682px;color:#fff}
-.p1 .desc{left:615px;color:#fff}
-.p2 .desc{left:776px;color:#000}
+.desc .ch{
+  display:inline-block;
+  transform:translateY(.62em);opacity:0;
+  transition:transform 760ms var(--e-soft),opacity 380ms linear;
+}
+.panel.is-active .desc .ch{
+  transform:none;opacity:1;
+  transition-delay:calc(var(--t-desc) + var(--i) * var(--step-char));
+}
 
-/* ↗ 버튼: 150x150 컨테이너 안에 90x90 흰 원, 48x48 아이콘 */
-.cta{position:absolute;left:1135px;top:930px;width:150px;height:150px;display:grid;place-items:center}
-.cta .dot{
-  width:90px;height:90px;border-radius:100px;background:#fff;
+/* ---------- 브랜드별 실측값 ---------- */
+.b-pyderin .logo{left:calc(112 * var(--s) * 1px);bottom:calc(144 * var(--s) * 1px);
+                 width:calc(531 * var(--s) * 1px);height:calc(153 * var(--s) * 1px)}
+.b-pyderin .desc{left:calc(682 * var(--s) * 1px);bottom:calc(221 * var(--s) * 1px);color:#fff}
+
+.b-barulab .logo{left:calc(121 * var(--s) * 1px);bottom:calc(196 * var(--s) * 1px);
+                 width:calc(596 * var(--s) * 1px);height:calc(82  * var(--s) * 1px)}
+.b-barulab .desc{left:calc(745 * var(--s) * 1px);bottom:calc(221 * var(--s) * 1px);color:#000}
+.desc .b3{display:none}
+/* 화면이 작아지면 3줄로 — 줄이 짧아져 프레임 안에 여유 있게 들어간다 */
+@media (max-width:1280px),(max-height:720px){
+  .desc .b2{display:none}
+  .desc .b3{display:inline}
+  .b-barulab .desc{left:calc(776 * var(--s) * 1px);bottom:calc(189 * var(--s) * 1px)}
+}
+
+.b-tam .logo{left:calc(120 * var(--s) * 1px);bottom:calc(120 * var(--s) * 1px);
+             width:calc(439 * var(--s) * 1px);height:calc(204 * var(--s) * 1px)}
+.b-tam .desc{left:calc(615 * var(--s) * 1px);bottom:calc(221 * var(--s) * 1px);color:#fff}
+
+/* ---------- ↗ 버튼: 브랜드 프레임의 오른쪽 아래 모서리에 고정 ---------- */
+.cta{
+  position:absolute;right:1px;bottom:0;
+  width:calc(150 * var(--s) * 1px);height:calc(150 * var(--s) * 1px);
   display:grid;place-items:center;
+  opacity:0;transform:translateY(calc(22 * var(--s) * 1px));pointer-events:none;
+  transition:opacity 520ms var(--e-soft),transform 700ms var(--e-soft);
+}
+.panel.is-active .label{pointer-events:auto}
+.panel.is-active .cta{opacity:1;transform:none;transition-delay:var(--t-cta)}
+.cta .dot{
+  width:calc(90 * var(--s) * 1px);height:calc(90 * var(--s) * 1px);
+  border-radius:50%;background:#fff;display:grid;place-items:center;
   transition:transform 420ms var(--e-expo);
 }
-.cta .dot img{width:48px;height:48px;transition:transform 420ms var(--e-expo)}
-.cta:hover .dot{transform:scale(1.09)}
-.cta:hover .dot img{transform:translate(4px,-4px)}
+.cta .dot img{
+  width:calc(48 * var(--s) * 1px);height:calc(48 * var(--s) * 1px);
+  transform:rotate(-90deg);
+}
+.panel.is-active .cta .dot img{
+  transform:rotate(0deg);
+  transition:transform 760ms var(--e-soft);
+  transition-delay:calc(var(--t-cta) + 140ms);
+}
+.panel.is-active .label:hover .dot{transform:scale(1.06)}
+.panel.is-active .label:hover .dot img{transform:rotate(0deg);transition-delay:0ms}
 
-/* ---------- Hero 좌측 텍스트 카드 (960px 오버레이) ---------- */
+/* ---------- Hero 좌측 카드 (디자인 추가 예정) ---------- */
 .cover{
-  position:absolute;left:0;top:0;width:960px;height:1080px;background:#fff;
+  position:absolute;left:0;top:0;width:var(--w-cover);height:100%;background:#fff;
   transform:translateX(0);
   transition:transform var(--d-cover) var(--e-quart);
   will-change:transform;
 }
-.stage.scrolled .cover{transform:translateX(-960px)}
+.stage.scrolled .cover{transform:translateX(calc(var(--w-cover) * -1))}
 
-.cover .nav{position:absolute;left:112px;top:52px;display:flex;gap:56px;align-items:center}
-.cover .nav a{display:flex;align-items:center;gap:12px;font-size:18px;letter-spacing:-0.36px;color:#111}
-.cover .nav i{width:9px;height:9px;border-radius:50%;background:currentColor;font-style:normal}
-.cover .nav a:nth-child(1) i{background:var(--pyderin)}
-.cover .nav a:nth-child(2) i{background:var(--tam)}
-.cover .nav a:nth-child(3) i{background:#9a9a9a}
-.cover .nav a:nth-child(4) i{background:#111}
-.cover .nav a span{transition:opacity 240ms ease}
-.cover .nav a:hover span{opacity:.45}
-
-.wordmark{
-  position:absolute;left:104px;top:300px;
-  font-family:Anton,Pretendard,sans-serif;font-weight:400;
-  font-size:268px;line-height:.84;letter-spacing:-.02em;color:#111;
-  cursor:pointer;user-select:none;
-}
-.cover .copy{
-  position:absolute;left:112px;top:720px;width:640px;
-  font-size:22px;line-height:32px;letter-spacing:-0.44px;color:#111;
-}
-.cover .rule{position:absolute;left:112px;top:952px;width:736px;height:1px;background:#111;opacity:.35}
-.cover .sns{position:absolute;left:112px;top:986px;width:736px;display:flex;justify-content:space-between}
-.cover .sns a{font-size:14px;letter-spacing:.08em;color:#111;transition:opacity 240ms ease}
-.cover .sns a:hover{opacity:.45}
-
-/* ---------- 스크롤 후 상단바 ---------- */
-.topbar{position:absolute;left:0;top:0;width:1920px;height:120px;pointer-events:none;z-index:5}
+/* ---------- 상단바 / 인덱스 ---------- */
+.topbar{position:absolute;left:0;top:0;width:100%;z-index:5;pointer-events:none}
 .topbar .menu{
+  position:absolute;right:calc(40 * var(--s) * 1px);top:calc(30 * var(--s) * 1px);
+  display:flex;align-items:center;gap:calc(14 * var(--s) * 1px);
+  padding:calc(13 * var(--s) * 1px) calc(24 * var(--s) * 1px);
+  border-radius:999px;background:#111;color:#fff;
+  font-size:calc(14 * var(--s) * 1px);letter-spacing:.1em;
+  cursor:pointer;pointer-events:auto;white-space:nowrap;
   opacity:0;transform:translateY(-14px);
   transition:opacity 420ms var(--e-expo),transform 520ms var(--e-expo);
 }
 .stage.scrolled .topbar .menu{opacity:1;transform:none;transition-delay:420ms}
-.topbar .menu{
-  position:absolute;right:40px;top:30px;
-  display:flex;align-items:center;gap:14px;
-  padding:13px 24px;border-radius:999px;background:#111;color:#fff;
-  font-size:14px;letter-spacing:.1em;cursor:pointer;pointer-events:auto;
-}
-.topbar .menu b{width:9px;height:9px;border-radius:50%;background:#fff;display:block}
-
-/* 인덱스 표시 */
+.topbar .menu b{width:calc(9 * var(--s) * 1px);height:calc(9 * var(--s) * 1px);
+                border-radius:50%;background:#fff;display:block;flex:none}
 .counter{
-  position:absolute;right:40px;bottom:34px;z-index:5;
-  font-size:14px;letter-spacing:.14em;color:#111;
+  position:absolute;right:calc(40 * var(--s) * 1px);bottom:calc(34 * var(--s) * 1px);z-index:5;
+  font-size:calc(14 * var(--s) * 1px);letter-spacing:.14em;color:#111;
   opacity:0;transition:opacity 420ms var(--e-expo);
 }
 .stage.scrolled .counter{opacity:1;transition-delay:460ms}
 
-/* ---------- 페이지 전환 로더 ---------- */
-.loader{position:absolute;inset:0;z-index:50;display:none}
-.loader.on{display:block}
-.loader .black{
-  position:absolute;left:-12%;top:-6%;width:124%;height:112%;
-  background:#0E0E0E;transform:skewX(-6deg) translateX(0);
-}
-.loader.wipe .black{
-  animation:wipeout 680ms cubic-bezier(.83,0,.17,1) forwards;
-}
-@keyframes wipeout{to{transform:skewX(-6deg) translateX(-128%)}}
-
-.loader .bars{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  display:flex;align-items:center;gap:26px;height:220px;
-}
-.loader .bars i{display:block;width:3px;background:#fff}
-.loader .bars i:nth-child(1){height:104px;transform:translateY(-26px)}
-.loader .bars i:nth-child(2){height:152px;transform:translateY(10px)}
-.loader .bars i:nth-child(3){height:118px;transform:translateY(-14px)}
-.loader .bars i:nth-child(4){height:168px;transform:translateY(22px)}
-.loader .bars i:nth-child(5){height:126px;transform:translateY(-8px)}
-.loader .bars i:nth-child(6){height:146px;transform:translateY(16px)}
-.loader.run .bars{animation:sweep 300ms cubic-bezier(.45,0,.55,1) 2 both}
-.loader.wipe .bars{opacity:0;transition:opacity 120ms linear}
-@keyframes sweep{
-  0%  {transform:translate(-50%,-50%) translateX(-130px);opacity:0}
-  18% {opacity:1}
-  82% {opacity:1}
-  100%{transform:translate(-50%,-50%) translateX(130px);opacity:0}
-}
-
-.cover .hint{
-  position:absolute;left:112px;top:898px;width:736px;text-align:right;
-  font-size:13px;letter-spacing:.16em;color:#111;opacity:.45;
-}
 </style>
 </head>
 <body>
 
 <div class="stage" id="stage">
 
-  <!-- ===== 슬라이더 ===== -->
+  <!-- DOM 순서 = 스크롤 순서. 뒤 패널이 앞 패널을 덮으며 peek 을 만든다. -->
   <section class="slider" id="slider">
 
     <!-- 01 PYDERIN -->
-    <article class="panel p0" data-i="0" style="--bg:#9B2246">
-      <div class="band"><img src="assets/photo-pyderin.png" alt=""></div>
-      <div class="logo"><img src="assets/logo-pyderin.png" alt="PYDERIN"></div>
+    <article class="panel b-pyderin has-alt"
+             style="--bg:#9B2246;--shot:url('assets/photo-pyderin-hero.jpg');
+                    --opy-hero:38%;--opy-full:50%;--opy-peek:50%">
+      <div class="band">
+        <div class="fill"></div>
+        <div class="crop">
+          <img class="alt" src="assets/photo-pyderin-hero.jpg" alt="">
+          <video class="main" src="assets/video-pyderin.mp4" poster="assets/photo-pyderin.png"
+                 muted loop playsinline preload="auto"></video>
+        </div>
+      </div>
+      <a class="label" href="https://pyderin.com/" target="_blank" rel="noopener"
+         aria-label="pyderin 사이트로 이동">
+      <div class="logo" data-src="assets/logo-pyderin.png" role="img" aria-label="PYDERIN"></div>
       <p class="desc">피더린은 의료 전문성과 성분 투명성을 바탕으로,<br>피부 본연의 회복에 집중하는 PDRN 전문 브랜드입니다.</p>
-      <a class="cta" href="https://pyderin.com/" target="_blank" rel="noopener">
-        <span class="dot"><img src="assets/arrow-pyderin.svg" alt="바로가기"></span>
+      <span class="cta">
+        <span class="dot"><img src="assets/arrow-pyderin.svg" alt="피더린 사이트로 이동"></span>
+      </span>
       </a>
     </article>
 
-    <!-- 02 TAM BEAUTY -->
-    <article class="panel p1" data-i="1" style="--bg:#61CCEB">
-      <div class="band" style="--op:50% 40.4%"><img src="assets/photo-tambeauty.jpg" alt=""></div>
-      <div class="logo"><img src="assets/logo-tambeauty.png" alt="tam BEAUTY"></div>
+    <!-- 02 BARULAB -->
+    <article class="panel b-barulab has-alt"
+             style="--bg:#E8DDB2;--shot:url('assets/barulab/01.jpg');
+                    --opy-hero:50%;--opy-full:50%;--opy-peek:50%">
+      <div class="band">
+        <div class="fill"></div>
+        <div class="crop">
+          <img class="alt" src="assets/barulab/01.jpg" alt="">
+          <div class="main"><div class="roll">
+          <img src="assets/barulab/01.jpg" alt="">
+          <img src="assets/barulab/02.jpg" alt="">
+          <img src="assets/barulab/03.jpg" alt="">
+          <img src="assets/barulab/04.jpg" alt="">
+          <img src="assets/barulab/05.jpg" alt="">
+          <img src="assets/barulab/06.jpg" alt="">
+          <img src="assets/barulab/07.jpg" alt="">
+          <img src="assets/barulab/08.jpg" alt="">
+          <img src="assets/barulab/01.jpg" alt="" aria-hidden="true">
+          </div></div>
+        </div>
+      </div>
+      <a class="label" href="https://barulab.com/" target="_blank" rel="noopener"
+         aria-label="barulab 사이트로 이동">
+      <div class="logo" data-src="assets/logo-barulab.png" role="img" aria-label="BARULAB"></div>
+      <p class="desc">바루랩은 20년 피부과학 연구와 비건·저자극 <br class="b3">성분을 바탕으로, <br class="b2">피부를 바로 잡는 데 집중하는 <br class="b3">스킨케어 전문 브랜드입니다.</p>
+      <span class="cta">
+        <span class="dot"><img src="assets/arrow-barulab.svg" alt="바루랩 사이트로 이동"></span>
+      </span>
+      </a>
+    </article>
+
+    <!-- 03 TAM BEAUTY -->
+    <article class="panel b-tam has-alt is-last"
+             style="--bg:#61CCEB;--shot:url('assets/tam/01.jpg');
+                    --opy-hero:50%;--opy-full:50%;--opy-peek:50%">
+      <div class="floor"></div>
+      <div class="band">
+        <div class="fill"></div>
+        <div class="crop">
+          <img class="alt" src="assets/tam/01.jpg" alt="">
+          <div class="main"><div class="roll">
+          <img src="assets/tam/01.jpg" alt="">
+          <img src="assets/tam/02.jpg" alt="">
+          <img src="assets/tam/03.jpg" alt="">
+          <img src="assets/tam/04.jpg" alt="">
+          <img src="assets/tam/05.jpg" alt="">
+          <img src="assets/tam/06.jpg" alt="">
+          <img src="assets/tam/07.jpg" alt="">
+          <img src="assets/tam/08.jpg" alt="">
+          <img src="assets/tam/01.jpg" alt="" aria-hidden="true">
+          </div></div>
+        </div>
+      </div>
+      <div class="ext e2"><img src="assets/photo-barulab.jpg" style="--oy:52.9%" alt=""></div>
+      <div class="ext e3"><img src="assets/photo-pyderin-hero.jpg" style="--oy:41.1%" alt=""></div>
+      <a class="label" href="https://tambeauty.kr/" target="_blank" rel="noopener"
+         aria-label="tam 사이트로 이동">
+      <div class="logo" data-src="assets/logo-tambeauty.png" role="img" aria-label="tam BEAUTY"></div>
       <p class="desc">탐뷰티는 식물 유래 원료와 친환경 공법을 바탕으로,<br>클린 뷰티에 특화된 코스메틱 라이프스타일 브랜드입니다.</p>
-      <a class="cta" href="https://tambeauty.kr" target="_blank" rel="noopener">
-        <span class="dot"><img src="assets/arrow-tam.svg" alt="바로가기"></span>
-      </a>
-    </article>
-
-    <!-- 03 BARULAB -->
-    <article class="panel p2" data-i="2" style="--bg:#DFDFDF">
-      <div class="band" style="--op:50% 54.4%"><img src="assets/photo-barulab.jpg" alt=""></div>
-      <div class="logo"><img src="assets/logo-barulab.png" alt="BARULAB"></div>
-      <p class="desc">바루랩은 20년 피부과학 연구와 비건·저자극<br>성분을 바탕으로, 피부를 바로 잡는 데 집중하는<br>스킨케어 전문 브랜드입니다.</p>
-      <a class="cta" href="https://barulab.com" target="_blank" rel="noopener">
-        <span class="dot"><img src="assets/arrow-barulab.svg" alt="바로가기"></span>
+      <span class="cta">
+        <span class="dot"><img src="assets/arrow-tam.svg" alt="탐뷰티 사이트로 이동"></span>
+      </span>
       </a>
     </article>
   </section>
 
-  <!-- ===== Hero 좌측 카드 ===== -->
-  <div class="cover" id="cover">
-    <nav class="nav">
-      <a href="#" data-go="1"><i></i><span>피더린</span></a>
-      <a href="#" data-go="2"><i></i><span>탐뷰티</span></a>
-      <a href="#" data-go="3"><i></i><span>바루랩</span></a>
-      <a href="#" data-go="0"><i></i><span>Contact</span></a>
-    </nav>
+  <div class="cover" id="cover"></div>
 
-    <h1 class="wordmark" id="wordmark">BNK</h1>
+  <div class="topbar"><div class="menu" id="menu">MENU <b></b></div></div>
+  <div class="counter" id="counter"></div>
 
-    <p class="copy">세 개의 브랜드, 하나의 기준.<br>피부과학 연구와 클린 뷰티, 그리고 의료 전문성까지 —<br>BNK가 만드는 스킨케어의 전부를 한자리에서 만나보세요.</p>
-
-    <div class="hint">SCROLL ↓</div>
-    <div class="rule"></div>
-    <div class="sns">
-      <a href="#">INSTAGRAM</a><a href="#">YOUTUBE</a><a href="#">NAVER</a><a href="#">KAKAO</a>
-    </div>
-  </div>
-
-  <!-- ===== 상단바 ===== -->
-  <div class="topbar">
-    <div class="menu" id="menu">MENU <b></b></div>
-  </div>
-  <div class="counter" id="counter">01 / 03</div>
-
-  <!-- ===== 로더 ===== -->
-  <div class="loader" id="loader">
-    <div class="black"></div>
-    <div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-  </div>
 </div>
 
 <script>
@@ -269,9 +342,58 @@ a{color:inherit;text-decoration:none}
   const stage   = document.getElementById('stage');
   const panels  = [...document.querySelectorAll('.panel')];
   const counter = document.getElementById('counter');
-  const loader  = document.getElementById('loader');
 
-  // 피그마 실측: hero 3단 peek (960 + 600 + 240 + 120 = 1920)
+
+  /* 로고 조각 — 폭/오프셋 모두 %라 화면 크기가 바뀌어도 그대로 맞음 */
+  const SLICES = 64;
+  document.querySelectorAll('.logo').forEach(el => {
+    const src = el.dataset.src;
+    el.style.setProperty('--src', `url("${src}")`);
+    for (let i = 0; i < SLICES; i++) {
+      const cell = document.createElement('span');
+      cell.className = 'sl';
+      cell.style.setProperty('--i', i);
+      const inner = document.createElement('i');
+      inner.style.backgroundImage = `url("${src}")`;
+      cell.appendChild(inner);
+      el.appendChild(cell);
+    }
+  });
+
+  /* 문구 — 글자 단위로 쪼갬. <br>은 그대로 둔다 */
+  document.querySelectorAll('.desc').forEach(p => {
+    const out = document.createDocumentFragment();
+    [...p.childNodes].forEach(node => {
+      if (node.nodeType === 1) { out.appendChild(node.cloneNode(true)); return; }
+      for (const c of node.textContent) {
+        const ch = document.createElement('span');
+        ch.className = 'ch';
+        ch.textContent = c === ' ' ? '\u00a0' : c;
+        out.appendChild(ch);
+      }
+    });
+    p.textContent = '';
+    p.appendChild(out);
+  });
+
+  /* 파도 순번은 실제로 렌더된 줄 기준. 줄마다 0부터 다시 세서
+     여러 줄이 한 줄기 물결에 실리고, 줄 수가 바뀌어도 그대로 맞는다. */
+  function indexChars(){
+    document.querySelectorAll('.desc').forEach(p => {
+      let top = null, i = 0;
+      p.querySelectorAll('.ch').forEach(ch => {
+        const t = ch.offsetTop;
+        if (top === null || Math.abs(t - top) > 2) { top = t; i = 0; }
+        ch.style.setProperty('--i', i++);
+      });
+    });
+  }
+
+  const vw = px => (px / 1920 * 100) + 'vw';
+  const pc = px => (px / 1080 * 100) + '%';
+
+  /* hero 3단 peek — 자리(slot)별 값, 브랜드와 무관 */
+  /* 피그마 메인페이지(15:142) 실측 — 자리별 사진 박스 */
   const HERO = [
     {x:960,  w:600, by:185, bh:450},
     {x:1560, w:240, by:519, bh:300},
@@ -279,37 +401,144 @@ a{color:inherit;text-decoration:none}
   ];
   const ACTIVE_W = 1285, PEEK_W = 635;
 
-  let state = 0;          // 0 = hero, 1..3 = 슬라이드 1..3 활성
-  let locked = false;
+  let state = 0, locked = false;
+
+  /* 마지막 슬라이드(탐뷰티) -> 좌측 이미지 컬럼(피그마 15:224) 연속 변형.
+     tp 0 = 브랜드 전체 프레임 / tp 1 = 컬럼 완성.
+     이미지가 아래에서 차오르며 로고·문구 영역을 화면 밖으로 밀어낸다. */
+  const last = document.querySelector('.panel.is-last');
+  const TP_SPAN = 1400;                  // 끝까지 가는 데 필요한 휠 이동량(px)
+  let tp = 0, tpTarget = 0, tpRAF = null, tpUp = 0;
+
+  const lerp   = (a, b, t) => a + (b - a) * t;
+  const clamp  = t => t < 0 ? 0 : t > 1 ? 1 : t;
+  const smooth = t => t * t * (3 - 2 * t);
+  const phase  = (t, a, b) => smooth(clamp((t - a) / (b - a)));
+
+  function applyTP(){
+    if (!last) return;
+    const e   = smooth(tp);
+    /* 세 칸이 같은 높이를 공유한다 -> 언제나 맞붙어 있고 함께 작아진다.
+       723(한 장만 보이는 상태) -> 360(세 장이 화면을 정확히 채우는 상태) */
+    const h   = lerp(723, 360, e);
+    const W   = lerp(1285, 639, e);
+    const pct = v => (v / 1080 * 100) + '%';
+
+    last.classList.toggle('morphing', tp > 0);
+    last.style.setProperty('--wf', (W / 1920 * 100) + 'vw');
+    last.style.setProperty('--fo', clamp(tp / .12));   // 비워지는 자리는 흰 바닥
+
+    const band = last.querySelector('.band');
+    band.style.setProperty('--bh',  pct(h));
+    band.style.setProperty('--bw',  (W / 1920 * 100) + 'vw');
+    band.style.setProperty('--opy', lerp(50, 40.9, e) + '%');
+
+    /* 바루랩·피더린은 첫 칸 바로 밑에 이어 붙는다 */
+    const e2 = last.querySelector('.e2'), e3 = last.querySelector('.e3');
+    e2.style.top = pct(h);      e2.style.height = pct(h);
+    e3.style.top = pct(h * 2);  e3.style.height = pct(h);
+
+    /* 브랜드 바: 첫 칸 아래를 덮고 있다가 통째로 위로 올라가 이미지 뒤로 숨는다 */
+    const bar = last.querySelector('.label');
+    const barH = 1080 - h;
+    bar.style.setProperty('--bar-top', pct(h));
+    bar.style.setProperty('--bar-h',   pct(barH));
+    bar.style.setProperty('--ly',      pct(-barH * phase(tp, 0, .5)).replace('%','vh'));
+    bar.style.pointerEvents = tp > .05 ? 'none' : '';
+
+    counter.style.opacity = tp > .05 ? '0' : '';
+    const r = last.querySelector('.roll');
+    if (r && tp > .02) rollStop(r);
+  }
+
+  function tpDraw(){
+    tp += (tpTarget - tp) * 0.14;
+    if (Math.abs(tpTarget - tp) < 0.002) tp = tpTarget;
+    applyTP();
+    tpRAF = (tp === tpTarget) ? null : requestAnimationFrame(tpDraw);
+  }
+  function tpKick(){ if (!tpRAF) tpRAF = requestAnimationFrame(tpDraw); }
+  function tpReset(){ tp = tpTarget = tpUp = 0; applyTP(); }
 
   function layout(){
     const scrolled = state > 0;
     stage.classList.toggle('scrolled', scrolled);
     const a = state - 1;
+    if (state !== 3 && tp !== 0) tpReset();
 
     panels.forEach((p, i) => {
-      let x, w, by, bh;
+      let x, w, by, bh, slot;
       if (!scrolled) {
-        ({x, w, by, bh} = HERO[i]);
-      } else if (i <= a) {                       // 활성 + 왼쪽으로 밀려난 것들
-        x = (i - a) * ACTIVE_W; w = ACTIVE_W;
-        by = (i === a) ? 0 : 247;
-        bh = (i === a) ? 723 : 586;
-      } else {                                   // 오른쪽 peek
+        ({x, w, by, bh} = HERO[i]); slot = 'hero';
+      } else if (i <= a) {
+        /* 활성 + 왼쪽으로 빠지는 것들: 모양을 바꾸지 않고 통째로 밀려나간다 */
+        x = (i - a) * ACTIVE_W; w = ACTIVE_W; by = 0; bh = 723; slot = 'full';
+      } else {
         x = ACTIVE_W + (i - a - 1) * PEEK_W; w = PEEK_W;
-        by = 247; bh = 586;
+        by = 247; bh = 586; slot = 'peek';
       }
-      p.style.setProperty('--x',  x  + 'px');
-      p.style.setProperty('--w',  w  + 'px');
-      p.style.setProperty('--delay', (scrolled ? i : 2 - i) * 40 + 'ms');
+      const active = scrolled && i === a;
+
+      p.style.setProperty('--x', vw(x));
       const band = p.querySelector('.band');
-      band.style.setProperty('--by', by + 'px');
-      band.style.setProperty('--bh', bh + 'px');
-      band.style.setProperty('--delay', (scrolled ? i : 2 - i) * 40 + 'ms');
-      p.classList.toggle('is-active', scrolled && i === a);
+      band.style.setProperty('--by', pc(by));
+      band.style.setProperty('--bh', pc(bh));
+      band.style.setProperty('--bw', vw(w));
+
+      const cs = getComputedStyle(p);
+      band.style.setProperty('--opy',
+        (cs.getPropertyValue('--opy-' + slot) || '50%').trim());
+
+      p.classList.toggle('is-active', active);
+
+      /* 파도(300ms 지연 + 63*3ms 스태거 + 840ms)가 끝나면 원본 로고로 교체 */
+      const lg = p.querySelector('.logo');
+      if (lg) {
+        clearTimeout(lg._t);
+        if (active) lg._t = setTimeout(() => lg.classList.add('settled'), 1400);
+        else lg.classList.remove('settled');
+      }
+      const v = p.querySelector('video');
+      if (v) { active ? v.play().catch(() => {}) : v.pause(); }
+      const r = p.querySelector('.roll');
+      if (r) { active ? rollStart(r) : rollStop(r); }
     });
 
     counter.textContent = scrolled ? String(a + 1).padStart(2,'0') + ' / 03' : '';
+  }
+
+  /* 이미지 롤(바루랩·탐뷰티) — 메인으로 올라왔을 때만 재생.
+     비활성 상태에서는 첫 장(기본 메인 이미지)에서 정지.
+     멈춤 1.38s + 이동 0.62s = 컷당 2초.
+     이징은 앞이 아주 완만하고 뒤에서 확 당겨지는 곡선 — 슬며시 밀리다 훅 넘어간다. */
+  const R_HOLD = 1380, R_MOVE = 620, R_EASE = 'cubic-bezier(.9,0,.25,1)';
+  const rolls = new Map();                                   // .roll -> 재생 상태
+  document.querySelectorAll('.roll').forEach(el => rolls.set(el,
+    { i:0, n: el.children.length - 1, timer:null, resetT:null }));   // n: 복제본 제외
+
+  function rollReset(el){
+    const s = rolls.get(el);
+    s.i = 0;
+    el.style.transition = 'none';
+    el.style.transform  = 'translateY(0%)';
+  }
+  function rollStop(el){
+    const s = rolls.get(el);
+    if (s.timer) { clearInterval(s.timer); s.timer = null; }
+    // 정지 화면으로 넘어가는 페이드가 끝난 뒤에 되감아야 첫 장으로 튀지 않는다
+    clearTimeout(s.resetT);
+    s.resetT = setTimeout(() => rollReset(el), 460);
+  }
+  function rollStart(el){
+    const s = rolls.get(el);
+    clearTimeout(s.resetT);
+    if (s.timer) return;
+    s.timer = setInterval(() => {
+      s.i++;
+      el.style.transition = `transform ${R_MOVE}ms ${R_EASE}`;
+      el.style.transform  = `translateY(${-s.i * 100}%)`;
+      if (s.i === s.n) setTimeout(() => rollReset(el), R_MOVE + 20);
+    }, R_HOLD + R_MOVE);
   }
 
   function go(next){
@@ -317,18 +546,48 @@ a{color:inherit;text-decoration:none}
     if (next === state || locked) return;
     state = next; locked = true;
     layout();
-    setTimeout(() => { locked = false; }, 620);
+    setTimeout(() => { locked = false; }, 700);
   }
 
-  /* ---- 휠 / 터치 / 키보드 ---- */
-  let acc = 0, accTimer;
+  /* 한 번 튕기면 한 칸만 넘어가되, 계속 굴릴 때 멈춰 서지 않게.
+     넘어간 직후에는 다음 칸까지 필요한 양을 크게 잡아 관성 꼬리를 흡수하고,
+     휠이 잠깐 쉬면 원래 감도로 돌아온다. (이전엔 아예 입력을 막아서
+     '어떤 영역은 스크롤이 안 먹는다'처럼 느껴졌다) */
+  const STEP = 60, STEP_CONT = 260;
+  let acc = 0, idleT = null, fresh = true;
+
   addEventListener('wheel', e => {
     e.preventDefault();
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;   // 가로 스와이프는 무시
+
+    clearTimeout(idleT);
+    idleT = setTimeout(() => { acc = 0; fresh = true; }, 140);
     if (locked) return;
+
+    /* 컬럼 변형 구간 */
+    if (state === 3) {
+      if (!fresh) {                       // 탐뷰티에 막 도착한 직후의 관성은 흡수
+        acc += e.deltaY;
+        if (Math.abs(acc) < STEP_CONT) return;
+        acc = 0; fresh = true;
+      }
+      if (e.deltaY > 0) {
+        if (tpTarget >= 1) return;                          // 끝에서 고정
+        tpTarget = clamp(tpTarget + e.deltaY / TP_SPAN);
+        tpKick(); return;
+      }
+      if (tpTarget > 0) {
+        tpTarget = clamp(tpTarget + e.deltaY / TP_SPAN);
+        if (tpTarget === 0) fresh = false;   // 다 되감으면 한 박자 쉬어간다
+        tpKick(); return;
+      }
+    }
+
     acc += e.deltaY;
-    clearTimeout(accTimer);
-    accTimer = setTimeout(() => { acc = 0; }, 160);
-    if (Math.abs(acc) > 40) { go(state + Math.sign(acc)); acc = 0; }
+    if (Math.abs(acc) < (fresh ? STEP : STEP_CONT)) return;
+    const dir = Math.sign(acc);
+    acc = 0; fresh = false;
+    go(state + dir);
   }, {passive:false});
 
   let ty = null;
@@ -345,34 +604,20 @@ a{color:inherit;text-decoration:none}
     if (['ArrowUp','PageUp'].includes(e.key))          { e.preventDefault(); go(state - 1); }
     if (e.key === 'Home') go(0);
   });
-
-  document.querySelectorAll('[data-go]').forEach(el => {
-    el.addEventListener('click', e => { e.preventDefault(); go(+el.dataset.go); });
-  });
   document.getElementById('menu').addEventListener('click', () => go(0));
 
-  /* ---- 페이지 전환 로더 ----
-     블랙 즉시 컷 → 세로 바 스윕 2회(600ms) → 스큐 와이프 아웃(680ms) */
-  function runLoader(then){
-    loader.classList.remove('wipe');
-    loader.classList.add('on');
-    void loader.offsetWidth;
-    loader.classList.add('run');
-    setTimeout(() => {
-      then && then();
-      loader.classList.add('wipe');
-      setTimeout(() => loader.classList.remove('on','run','wipe'), 700);
-    }, 600);
-  }
-  document.getElementById('wordmark').addEventListener('click', () => runLoader());
 
-  const fit = () => stage.style.setProperty('--k',
-    Math.max(innerWidth / 1920, innerHeight / 1080));
-  addEventListener('resize', fit);
+
+  const fit = () => {
+    document.documentElement.style.setProperty(
+      '--s', Math.min(innerWidth / 1920, innerHeight / 1080));
+  };
+  addEventListener('resize', () => { fit(); indexChars(); });
   fit();
+  indexChars();
 
   layout();
-  runLoader();   // 최초 진입 인트로
+  applyTP();
 })();
 </script>
 </body>
