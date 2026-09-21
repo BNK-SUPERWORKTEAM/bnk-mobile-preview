@@ -154,6 +154,8 @@ a{color:inherit;text-decoration:none}
   letter-spacing:calc(-0.44 * var(--s) * 1px);
   font-weight:400;white-space:nowrap;
 }
+.desc .w,
+.s4 .w{white-space:nowrap}
 .desc .ch{
   display:inline-block;
   transform:translateY(.62em);opacity:0;
@@ -676,16 +678,39 @@ a{color:inherit;text-decoration:none}
   });
 
   /* 문구 — 글자 단위로 쪼갬. <br>은 그대로 둔다 */
+  /* 파도 모션 때문에 글자를 하나씩 쪼개는데, 예전엔 공백까지 &nbsp; 로 바꿔
+     넣어 "공백에서는 절대 안 끊기고 단어 중간에서만 끊기는" 상태였다
+     (영어에서 adva/nced 처럼 잘림). 라틴 단어는 한 덩어리로 묶어 안 쪼개지게
+     하고, 공백은 진짜 공백으로 둬서 거기서 줄이 바뀌게 한다.
+     한중일은 원래 글자 단위로 끊는 게 맞으므로 그대로 낱자로 둔다. */
+  const LATIN = /[A-Za-z0-9''’\-–—.&]+/g;
   function splitDesc(p){
     const out = document.createDocumentFragment();
+    const chip = c => {
+      const ch = document.createElement('span');
+      ch.className = 'ch';
+      ch.textContent = c;
+      return ch;
+    };
+    const loose = str => {
+      for (const c of str) {
+        if (c === ' ') out.appendChild(document.createTextNode(' '));
+        else out.appendChild(chip(c));
+      }
+    };
     [...p.childNodes].forEach(node => {
       if (node.nodeType === 1) { out.appendChild(node.cloneNode(true)); return; }
-      for (const c of node.textContent) {
-        const ch = document.createElement('span');
-        ch.className = 'ch';
-        ch.textContent = c === ' ' ? '\u00a0' : c;
-        out.appendChild(ch);
+      const text = node.textContent;
+      let at = 0;
+      for (const m of text.matchAll(LATIN)) {
+        loose(text.slice(at, m.index));
+        const w = document.createElement('span');
+        w.className = 'w';
+        for (const c of m[0]) w.appendChild(chip(c));
+        out.appendChild(w);
+        at = m.index + m[0].length;
       }
+      loose(text.slice(at));
     });
     p.textContent = '';
     p.appendChild(out);
@@ -1174,18 +1199,33 @@ a{color:inherit;text-decoration:none}
       +'이들은 각자의 영역에서 쌓아온 전문성으로 고객 한 분 한 분의 특별한 니즈에 맞는 뷰티 솔루션을 제안합니다.<br>'
       +'광범위한 포트폴리오 안에서 최적의 제품을 찾을 수 있도록,<br>'
       +'맞춤형 선택지를 제공하는 것이 우리의 역할이자 가치입니다.',
-    en:'PDRN for anti-aging, pure clean beauty found in nature, and advanced bio technology.<br>'
-      +'PYDERIN, BARULAB and TAM BEAUTY expand what professional beauty can do.<br><br>'
-      +'With the expertise each has built in its own field, they propose solutions for every need.<br>'
-      +'Offering tailored choices within a broad portfolio is our role and our value.',
-    zh:'用于抗衰老的 PDRN、源自自然的纯净美妆，以及尖端生物技术。<br>'
-      +'PYDERIN、BARULAB 与 TAM BEAUTY 是拓展专业美妆产业可能性的三大代表品牌。<br><br>'
+    /* 한국어와 같은 호흡으로 끊는다 — 1문단은 세 구절을 각 줄에, 2문단은 두 줄,
+       3문단은 긴 문장 하나 + 두 줄. 줄이 의미 단위로 떨어지게 직접 나눈 값이라
+       번역문을 고칠 때 줄바꿈 위치도 같이 봐야 한다. */
+    en:'PDRN for anti-aging,<br>'
+      +'pure clean beauty found in nature,<br>'
+      +'and advanced bio technology.<br><br>'
+      +'PYDERIN, BARULAB and TAM BEAUTY are three brands<br>'
+      +'expanding what professional beauty can do.<br><br>'
+      +'With the expertise each has built in its own field, they propose beauty solutions for every individual need.<br>'
+      +'Offering tailored choices within a broad portfolio<br>'
+      +'is our role and our value.',
+    zh:'用于抗衰老的 PDRN、<br>'
+      +'源自自然的纯净美妆，<br>'
+      +'以及尖端生物技术。<br><br>'
+      +'PYDERIN、BARULAB 与 TAM BEAUTY 是<br>'
+      +'拓展专业美妆产业可能性的三大代表品牌。<br><br>'
       +'它们以各自领域积累的专业，为每一位顾客提出契合其需求的美妆方案。<br>'
-      +'在广泛的产品组合中提供量身定制的选择，正是我们的角色与价值。',
-    ja:'アンチエイジングのためのPDRN、自然から見つけたピュアなクリーンビューティー、そして最先端のバイオ技術まで。<br>'
-      +'PYDERIN、BARULAB、TAM BEAUTYはプロフェッショナルビューティー業界の可能性を広げる3つのブランドです。<br><br>'
+      +'在广泛的产品组合中提供量身定制的选择，<br>'
+      +'正是我们的角色与价值。',
+    ja:'アンチエイジングのための PDRN、<br>'
+      +'自然から見つけたピュアなクリーンビューティー、<br>'
+      +'そして最先端のバイオ技術まで。<br><br>'
+      +'PYDERIN、BARULAB、TAM BEAUTY は<br>'
+      +'プロフェッショナルビューティー業界の可能性を広げる3つのブランドです。<br><br>'
       +'それぞれの領域で培った専門性で、お客様一人ひとりのニーズに合う提案をします。<br>'
-      +'幅広いポートフォリオの中から最適な選択肢を届けることが、私たちの役割であり価値です。',
+      +'幅広いポートフォリオの中から最適な選択肢を届けることが、<br>'
+      +'私たちの役割であり価値です。',
   };
 
   const BRANDKEY = p => p.classList.contains('b-pyderin') ? 'pyderin'
