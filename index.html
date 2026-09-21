@@ -340,11 +340,14 @@ a{color:inherit;text-decoration:none}
   padding:calc(17 * var(--s) * 1px) calc(34 * var(--s) * 1px);
   border-radius:999px;background:#111;color:#fff;
   font-size:calc(18 * var(--s) * 1px);font-weight:500;letter-spacing:.12em;
-  cursor:pointer;pointer-events:auto;white-space:nowrap;
+  cursor:pointer;white-space:nowrap;
+  /* 스크롤 전에는 보이지 않는다 — 이때 pointer-events 를 켜두면 투명한 채로
+     상단 오른쪽(언어 선택 토글 자리)의 탭을 가로챈다 */
+  pointer-events:none;
   opacity:0;transform:translateY(-14px);
   transition:opacity 420ms var(--e-expo),transform 520ms var(--e-expo);
 }
-.stage.scrolled .topbar .menu{opacity:1;transform:none;transition-delay:420ms}
+.stage.scrolled .topbar .menu{opacity:1;transform:none;transition-delay:420ms;pointer-events:auto}
 .counter{
   position:absolute;right:calc(40 * var(--s) * 1px);bottom:calc(34 * var(--s) * 1px);z-index:5;
   font-size:calc(14 * var(--s) * 1px);letter-spacing:.14em;color:#111;
