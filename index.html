@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BNK Integrated Page</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap">
 <style>
 /* ===========================================================
    피그마 통합페이지(1920x1080) 기준.
@@ -30,7 +33,11 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;background:#fff;overflow:hidden}
-body{font-family:Pretendard,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+/* 언어별 본문 고딕 — 모두 Pretendard 계열의 가독성 좋은 산세리프 */
+body{font-family:var(--font);-webkit-font-smoothing:antialiased}
+:root{--font:Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+html[lang="ja"]{--font:'Noto Sans JP',Pretendard,'Hiragino Sans','Yu Gothic',sans-serif}
+html[lang="zh"]{--font:'Noto Sans SC',Pretendard,'PingFang SC','Microsoft YaHei',sans-serif}
 img,video{display:block}
 a{color:inherit;text-decoration:none}
 @media (prefers-reduced-motion:reduce){
@@ -44,10 +51,10 @@ a{color:inherit;text-decoration:none}
   width:var(--wf, var(--w-frame));
   transform:translateX(var(--x));
   background:var(--bg);overflow:hidden;
-  transition:transform var(--d-panel) var(--e-expo);
-  will-change:transform;
+  opacity:1;
+  transition:transform 1250ms var(--e-soft),opacity 760ms linear;
+  will-change:transform,opacity;
 }
-
 /* 이미지 밴드 — 2중 구조.
    .fill : 프레임 전폭. 전환 중 .crop 폭이 한 프레임 늦어도 같은 사진이 깔려 있어
            빈 여백(브랜드 색)이 절대 드러나지 않는다.
@@ -63,7 +70,7 @@ a{color:inherit;text-decoration:none}
 .band .fill{
   position:absolute;inset:0;
   background-image:var(--shot);background-size:cover;
-  background-position:50% var(--opy,50%);
+  background-position:var(--opx,50%) var(--opy,50%);
 }
 .band .crop{
   position:absolute;left:0;top:0;height:100%;width:var(--bw);overflow:hidden;
@@ -71,7 +78,7 @@ a{color:inherit;text-decoration:none}
 }
 .band .crop>*{
   position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;object-position:50% var(--opy,50%);
+  object-fit:cover;object-position:var(--opx,50%) var(--opy,50%);
   transition:object-position var(--d-panel) var(--e-expo),opacity 420ms linear;
 }
 /* 탐뷰티: 이미지 10장이 아래에서 위로 올라오며 교체되는 무한 롤 */
@@ -139,7 +146,7 @@ a{color:inherit;text-decoration:none}
 
 /* ---------- 문구: 글자 단위 파도 ---------- */
 .desc{
-  position:absolute;
+  position:absolute;top:calc(72 * var(--s) * 1px);
   font-size:calc(22 * var(--s) * 1px);
   line-height:calc(32 * var(--s) * 1px);
   letter-spacing:calc(-0.44 * var(--s) * 1px);
@@ -158,22 +165,18 @@ a{color:inherit;text-decoration:none}
 /* ---------- 브랜드별 실측값 ---------- */
 .b-pyderin .logo{left:calc(112 * var(--s) * 1px);bottom:calc(144 * var(--s) * 1px);
                  width:calc(531 * var(--s) * 1px);height:calc(153 * var(--s) * 1px)}
-.b-pyderin .desc{left:calc(682 * var(--s) * 1px);bottom:calc(221 * var(--s) * 1px);color:#fff}
+.b-pyderin .desc{left:calc(682 * var(--s) * 1px);color:#fff}
 
 .b-barulab .logo{left:calc(121 * var(--s) * 1px);bottom:calc(196 * var(--s) * 1px);
                  width:calc(596 * var(--s) * 1px);height:calc(82  * var(--s) * 1px)}
-.b-barulab .desc{left:calc(745 * var(--s) * 1px);bottom:calc(221 * var(--s) * 1px);color:#000}
-.desc .b3{display:none}
-/* 화면이 작아지면 3줄로 — 줄이 짧아져 프레임 안에 여유 있게 들어간다 */
-@media (max-width:1280px),(max-height:720px){
-  .desc .b2{display:none}
-  .desc .b3{display:inline}
-  .b-barulab .desc{left:calc(776 * var(--s) * 1px);bottom:calc(189 * var(--s) * 1px)}
-}
-
+.b-barulab .desc{left:calc(769 * var(--s) * 1px);color:#000}
 .b-tam .logo{left:calc(120 * var(--s) * 1px);bottom:calc(120 * var(--s) * 1px);
              width:calc(439 * var(--s) * 1px);height:calc(204 * var(--s) * 1px)}
-.b-tam .desc{left:calc(615 * var(--s) * 1px);bottom:calc(221 * var(--s) * 1px);color:#fff}
+.b-tam .desc{left:calc(615 * var(--s) * 1px);color:#fff}
+
+/* 바루랩은 문구가 길어 3줄 고정 — 2줄로 펴면 오른쪽 여백이 4px밖에 안 남는다 */
+.desc .b2{display:none}
+.desc .b3{display:inline}
 
 /* ---------- ↗ 버튼: 브랜드 프레임의 오른쪽 아래 모서리에 고정 ---------- */
 .cta{
@@ -202,30 +205,141 @@ a{color:inherit;text-decoration:none}
 .panel.is-active .label:hover .dot{transform:scale(1.06)}
 .panel.is-active .label:hover .dot img{transform:rotate(0deg);transition-delay:0ms}
 
-/* ---------- Hero 좌측 카드 (디자인 추가 예정) ---------- */
-.cover{
-  position:absolute;left:0;top:0;width:var(--w-cover);height:100%;background:#fff;
-  transform:translateX(0);
-  transition:transform var(--d-cover) var(--e-quart);
-  will-change:transform;
+.herobar button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+
+/* 좌상단 — 브랜드 바로가기 */
+.herobar{
+  position:absolute;left:0;z-index:6;top:calc(46 * var(--s) * 1px);
+  width:var(--w-frame);padding:0 calc(60 * var(--s) * 1px);
+  display:flex;align-items:center;justify-content:space-between;
+  z-index:6;color:#fff;
+  text-shadow:0 1px 14px rgba(0,0,0,.28);
+  transition:opacity 420ms var(--e-soft),transform 620ms var(--e-soft);
 }
-.stage.scrolled .cover{transform:translateX(calc(var(--w-cover) * -1))}
+.stage.scrolled .herobar{opacity:0;transform:translateY(calc(-18 * var(--s) * 1px));pointer-events:none}
+.brandnav{display:flex;gap:calc(38 * var(--s) * 1px)}
+.brandnav button{
+  font-size:calc(18 * var(--s) * 1px);font-weight:500;letter-spacing:-0.02em;
+  white-space:nowrap;overflow:hidden;height:1.4em;
+}
+/* 같은 글자를 두 벌 쌓아두고 한 칸 밀어 올린다 — 위로 넘어가며 교체되는 모션 */
+.brandnav button span{display:block;transition:transform 520ms var(--e-soft)}
+.brandnav button i{display:block;font-style:normal;height:1.4em;line-height:1.4em}
+.brandnav button:hover span{transform:translateY(-50%)}
+
+/* 우상단 — 언어 */
+.langs{display:flex;align-items:center;gap:calc(24 * var(--s) * 1px)}
+.langs button{
+  /* 폰트를 고정한다. --font 를 상속하면 언어를 바꿀 때마다 이 줄의
+     글자 폭과 baseline 이 달라져 버튼들이 밀린다 */
+  font-family:Pretendard,'Noto Sans JP','Noto Sans SC',-apple-system,sans-serif;
+  font-size:calc(16 * var(--s) * 1px);font-weight:500;line-height:1.25;letter-spacing:.01em;
+  color:#fff;opacity:.5;
+  padding-bottom:calc(3 * var(--s) * 1px);border-bottom:1px solid transparent;
+  transition:opacity 220ms ease,border-color 220ms ease;white-space:nowrap;
+  display:flex;align-items:center;justify-content:center;
+}
+.langs button:hover{opacity:.85}
+.langs button.on{opacity:1;border-bottom-color:#fff}
+
+
+/* ---------- 스크롤 안내 ----------
+   레퍼런스 모션: 점이 떨어질 때 세로로 길게 늘어나고(stretch),
+   끝에서 납작하게 뭉쳤다(squash) 원형으로 돌아온다. 빠른 구간엔 잔상. */
+.cue{
+  position:absolute;z-index:6;pointer-events:none;
+  /* 오른쪽 끝을 언어 선택 줄과 같은 라인에 맞춘다 (패널 폭 - 좌우 여백 60) */
+  left:auto;right:calc(33.073vw - 1px + 60 * var(--s) * 1px);
+  /* 사진 밑 빨간 영역(723~1080) 안쪽에 위아래 38씩 여백을 두고 꽉 채운다 */
+  top:calc(66.944% + 38 * var(--s) * 1px);
+  bottom:calc(38 * var(--s) * 1px);
+  display:flex;flex-direction:column;align-items:center;
+  gap:calc(18 * var(--s) * 1px);color:#fff;
+  transition:opacity 420ms var(--e-soft);
+}
+.stage.scrolled .cue{opacity:0}
+.cue span{
+  /* 상단 브랜드 내비와 같은 크기·굵기 */
+  font-size:calc(18 * var(--s) * 1px);font-weight:500;
+  letter-spacing:.06em;opacity:.85;text-shadow:0 1px 10px rgba(0,0,0,.3);
+}
+.cue i{
+  position:relative;display:block;
+  flex:1 1 auto;width:calc(14 * var(--s) * 1px);
+}
+/* 점이 지나가는 경로 표시 — 가느다란 세로선 */
+.cue i::before{
+  content:'';position:absolute;left:50%;top:0;bottom:0;
+  width:1.5px;margin-left:-0.75px;             /* 화면 배율과 무관하게 항상 1.5px */
+  border-radius:999px;background:rgba(255,255,255,.30);
+}
+.cue i b{
+  position:absolute;left:0;top:0;
+  width:calc(14 * var(--s) * 1px);height:calc(14 * var(--s) * 1px);
+  border-radius:999px;background:#fff;
+  transform-origin:50% 50%;
+  animation:cuedot 1900ms infinite;
+}
+@keyframes cuedot{
+  0%,8%    {transform:translateY(0) scale(1,1);filter:blur(0);
+            animation-timing-function:cubic-bezier(.55,0,.85,.35)}   /* 가속 */
+  30%      {transform:translateY(800%) scale(.66,1.66);filter:blur(.7px)}
+  46%      {transform:translateY(1600%) scale(1.22,.8);filter:blur(0);
+            animation-timing-function:cubic-bezier(.18,.9,.32,1)}    /* 착지 뭉침 */
+  54%      {transform:translateY(1600%) scale(1,1);
+            animation-timing-function:cubic-bezier(.55,0,.85,.35)}
+  74%      {transform:translateY(800%) scale(.66,1.66);filter:blur(.7px)}
+  90%      {transform:translateY(0) scale(1.18,.84);filter:blur(0);
+            animation-timing-function:cubic-bezier(.18,.9,.32,1)}
+  100%     {transform:translateY(0) scale(1,1)}
+}
+@media (prefers-reduced-motion:reduce){.cue i b{animation:none}}
+
+/* ---------- 마지막 화면 문구 ---------- */
+.s4{
+  position:absolute;z-index:4;pointer-events:none;
+  left:39.583vw;                       /* 컬럼(639) 오른쪽 121 */
+  top:0;height:100%;width:calc(1020 * var(--s) * 1px);
+  display:flex;flex-direction:column;justify-content:center;
+  gap:calc(40 * var(--s) * 1px);
+}
+.s4-h{
+  /* 어떤 언어를 선택해도 영문 그대로 */
+  font-family:Pretendard,-apple-system,sans-serif;
+  font-size:calc(52 * var(--s) * 1px);font-weight:500;
+  line-height:1.20;letter-spacing:-0.02em;color:#111;
+}
+.s4-p{
+  white-space:nowrap;
+  font-size:calc(18 * var(--s) * 1px);line-height:calc(30 * var(--s) * 1px);
+  letter-spacing:calc(-0.36 * var(--s) * 1px);color:#111;opacity:.75;
+}
+/* 등장 모션은 브랜드 문구와 동일한 글자 단위 파도 */
+.s4 .ch{
+  display:inline-block;
+  transform:translateY(.62em);opacity:0;
+  transition:transform 760ms var(--e-soft),opacity 380ms linear;
+}
+.s4.on .ch{
+  transform:none;opacity:1;
+  transition-delay:calc(var(--t,0ms) + var(--i) * var(--step-char));
+}
+.s4-h{--t:120ms}
+.s4-p{--t:560ms}
 
 /* ---------- 상단바 / 인덱스 ---------- */
 .topbar{position:absolute;left:0;top:0;width:100%;z-index:5;pointer-events:none}
 .topbar .menu{
   position:absolute;right:calc(40 * var(--s) * 1px);top:calc(30 * var(--s) * 1px);
-  display:flex;align-items:center;gap:calc(14 * var(--s) * 1px);
-  padding:calc(13 * var(--s) * 1px) calc(24 * var(--s) * 1px);
+  display:flex;align-items:center;
+  padding:calc(17 * var(--s) * 1px) calc(34 * var(--s) * 1px);
   border-radius:999px;background:#111;color:#fff;
-  font-size:calc(14 * var(--s) * 1px);letter-spacing:.1em;
+  font-size:calc(18 * var(--s) * 1px);font-weight:500;letter-spacing:.12em;
   cursor:pointer;pointer-events:auto;white-space:nowrap;
   opacity:0;transform:translateY(-14px);
   transition:opacity 420ms var(--e-expo),transform 520ms var(--e-expo);
 }
 .stage.scrolled .topbar .menu{opacity:1;transform:none;transition-delay:420ms}
-.topbar .menu b{width:calc(9 * var(--s) * 1px);height:calc(9 * var(--s) * 1px);
-                border-radius:50%;background:#fff;display:block;flex:none}
 .counter{
   position:absolute;right:calc(40 * var(--s) * 1px);bottom:calc(34 * var(--s) * 1px);z-index:5;
   font-size:calc(14 * var(--s) * 1px);letter-spacing:.14em;color:#111;
@@ -266,12 +380,12 @@ a{color:inherit;text-decoration:none}
 
     <!-- 02 BARULAB -->
     <article class="panel b-barulab has-alt"
-             style="--bg:#E8DDB2;--shot:url('assets/barulab/01.jpg');
-                    --opy-hero:50%;--opy-full:50%;--opy-peek:50%">
+             style="--bg:#E8DDB2;--shot:url('assets/main-barulab.jpg');
+                    --opy-hero:50%;--opx-hero:58%;--opy-full:50%;--opy-peek:50%">
       <div class="band">
         <div class="fill"></div>
         <div class="crop">
-          <img class="alt" src="assets/barulab/01.jpg" alt="">
+          <img class="alt" src="assets/main-barulab.jpg" alt="">
           <div class="main"><div class="roll">
           <img src="assets/barulab/01.jpg" alt="">
           <img src="assets/barulab/02.jpg" alt="">
@@ -297,13 +411,13 @@ a{color:inherit;text-decoration:none}
 
     <!-- 03 TAM BEAUTY -->
     <article class="panel b-tam has-alt is-last"
-             style="--bg:#61CCEB;--shot:url('assets/tam/01.jpg');
+             style="--bg:#61CCEB;--shot:url('assets/photo-tambeauty.jpg');
                     --opy-hero:50%;--opy-full:50%;--opy-peek:50%">
       <div class="floor"></div>
       <div class="band">
         <div class="fill"></div>
         <div class="crop">
-          <img class="alt" src="assets/tam/01.jpg" alt="">
+          <img class="alt" src="assets/photo-tambeauty.jpg" alt="">
           <div class="main"><div class="roll">
           <img src="assets/tam/01.jpg" alt="">
           <img src="assets/tam/02.jpg" alt="">
@@ -330,9 +444,30 @@ a{color:inherit;text-decoration:none}
     </article>
   </section>
 
-  <div class="cover" id="cover"></div>
+  <!-- 메인 화면 UI — 피더린 패널 위에 얹힌다 -->
+  <div class="herobar" id="herobar">
+    <nav class="brandnav">
+      <button type="button" data-go="1" data-i18n="b1"><span><i>피더린</i><i>피더린</i></span></button>
+      <button type="button" data-go="2" data-i18n="b2"><span><i>바루랩</i><i>바루랩</i></span></button>
+      <button type="button" data-go="3" data-i18n="b3"><span><i>탐뷰티</i><i>탐뷰티</i></span></button>
+    </nav>
+    <div class="langs" id="langs">
+      <button type="button" data-lang="en" lang="en">English</button>
+      <button type="button" data-lang="ko" lang="ko" class="on">한국어</button>
+      <button type="button" data-lang="zh" lang="zh">中文</button>
+      <button type="button" data-lang="ja" lang="ja">日本語</button>
+    </div>
+  </div>
 
-  <div class="topbar"><div class="menu" id="menu">MENU <b></b></div></div>
+  <!-- 마지막 화면 문구 — 컬럼 오른쪽 -->
+  <div class="s4" id="s4">
+    <h2 class="s4-h" lang="en">ADVANCED BEAUTY SOLUTIONS,<br>TAILORED TO YOUR NEEDS</h2>
+    <p class="s4-p"></p>
+  </div>
+
+  <div class="cue" id="cue"><span>SCROLL</span><i><b></b></i></div>
+
+  <div class="topbar"><div class="menu" id="menu">MENU</div></div>
   <div class="counter" id="counter"></div>
 
 </div>
@@ -342,6 +477,7 @@ a{color:inherit;text-decoration:none}
   const stage   = document.getElementById('stage');
   const panels  = [...document.querySelectorAll('.panel')];
   const counter = document.getElementById('counter');
+  const s4      = document.getElementById('s4');
 
 
   /* 로고 조각 — 폭/오프셋 모두 %라 화면 크기가 바뀌어도 그대로 맞음 */
@@ -361,7 +497,7 @@ a{color:inherit;text-decoration:none}
   });
 
   /* 문구 — 글자 단위로 쪼갬. <br>은 그대로 둔다 */
-  document.querySelectorAll('.desc').forEach(p => {
+  function splitDesc(p){
     const out = document.createDocumentFragment();
     [...p.childNodes].forEach(node => {
       if (node.nodeType === 1) { out.appendChild(node.cloneNode(true)); return; }
@@ -374,12 +510,13 @@ a{color:inherit;text-decoration:none}
     });
     p.textContent = '';
     p.appendChild(out);
-  });
+  }
+  document.querySelectorAll('.desc, .s4-h, .s4-p').forEach(splitDesc);
 
   /* 파도 순번은 실제로 렌더된 줄 기준. 줄마다 0부터 다시 세서
      여러 줄이 한 줄기 물결에 실리고, 줄 수가 바뀌어도 그대로 맞는다. */
   function indexChars(){
-    document.querySelectorAll('.desc').forEach(p => {
+    document.querySelectorAll('.desc, .s4-h, .s4-p').forEach(p => {
       let top = null, i = 0;
       p.querySelectorAll('.ch').forEach(ch => {
         const t = ch.offsetTop;
@@ -394,10 +531,11 @@ a{color:inherit;text-decoration:none}
 
   /* hero 3단 peek — 자리(slot)별 값, 브랜드와 무관 */
   /* 피그마 메인페이지(15:142) 실측 — 자리별 사진 박스 */
+  /* 피그마 메인페이지(19:325) 실측 — 피더린 1285 / 바루랩 406 / 탐뷰티 229 */
   const HERO = [
-    {x:960,  w:600, by:185, bh:450},
-    {x:1560, w:240, by:519, bh:300},
-    {x:1800, w:120, by:727, bh:240},
+    {x:0,    w:1285, by:0,   bh:723},
+    {x:1285, w:406,  by:349, bh:507},
+    {x:1691, w:229,  by:614, bh:374},
   ];
   const ACTIVE_W = 1285, PEEK_W = 635;
 
@@ -417,6 +555,25 @@ a{color:inherit;text-decoration:none}
 
   function applyTP(){
     if (!last) return;
+
+    /* 마지막 슬라이드가 아닐 때는 변형 값을 걷어내고 layout() 에 맡긴다.
+       (이게 없으면 초기화 때 탐뷰티 밴드가 활성 크기 1285x723 으로 덮여
+        메인 화면의 229x374 칸 안에서 비율이 어긋나 보였다) */
+    if (state !== 3) {
+      last.classList.remove('morphing');
+      last.style.removeProperty('--wf');
+      last.style.setProperty('--fo', 0);
+      last.querySelector('.e2').style.height = '0%';
+      last.querySelector('.e3').style.height = '0%';
+      const b0 = last.querySelector('.label');
+      b0.style.removeProperty('--bar-top');
+      b0.style.removeProperty('--bar-h');
+      b0.style.setProperty('--ly', '0px');
+      b0.style.pointerEvents = '';
+      s4.classList.remove('on');
+      return;
+    }
+
     const e   = smooth(tp);
     /* 세 칸이 같은 높이를 공유한다 -> 언제나 맞붙어 있고 함께 작아진다.
        723(한 장만 보이는 상태) -> 360(세 장이 화면을 정확히 채우는 상태) */
@@ -446,6 +603,7 @@ a{color:inherit;text-decoration:none}
     bar.style.setProperty('--ly',      pct(-barH * phase(tp, 0, .5)).replace('%','vh'));
     bar.style.pointerEvents = tp > .05 ? 'none' : '';
 
+    s4.classList.toggle('on', tp > .72);
     counter.style.opacity = tp > .05 ? '0' : '';
     const r = last.querySelector('.roll');
     if (r && tp > .02) rollStop(r);
@@ -486,8 +644,8 @@ a{color:inherit;text-decoration:none}
       band.style.setProperty('--bw', vw(w));
 
       const cs = getComputedStyle(p);
-      band.style.setProperty('--opy',
-        (cs.getPropertyValue('--opy-' + slot) || '50%').trim());
+      band.style.setProperty('--opy', (cs.getPropertyValue('--opy-' + slot) || '50%').trim());
+      band.style.setProperty('--opx', (cs.getPropertyValue('--opx-' + slot) || '50%').trim());
 
       p.classList.toggle('is-active', active);
 
@@ -524,6 +682,7 @@ a{color:inherit;text-decoration:none}
   }
   function rollStop(el){
     const s = rolls.get(el);
+    clearTimeout(s.startT);
     if (s.timer) { clearInterval(s.timer); s.timer = null; }
     // 정지 화면으로 넘어가는 페이드가 끝난 뒤에 되감아야 첫 장으로 튀지 않는다
     clearTimeout(s.resetT);
@@ -533,12 +692,17 @@ a{color:inherit;text-decoration:none}
     const s = rolls.get(el);
     clearTimeout(s.resetT);
     if (s.timer) return;
-    s.timer = setInterval(() => {
+    const step = () => {
       s.i++;
       el.style.transition = `transform ${R_MOVE}ms ${R_EASE}`;
       el.style.transform  = `translateY(${-s.i * 100}%)`;
       if (s.i === s.n) setTimeout(() => rollReset(el), R_MOVE + 20);
-    }, R_HOLD + R_MOVE);
+    };
+    // 브랜드가 메인으로 올라오는 즉시 첫 전환이 시작되도록 —
+    // setInterval 은 첫 실행 전에도 항상 한 주기(R_HOLD+R_MOVE)를 기다리므로
+    // 첫 스텝만 짧게 예약하고, 이후는 정상 주기로 이어간다.
+    s.startT = setTimeout(step, 60);
+    s.timer = setInterval(step, R_HOLD + R_MOVE);
   }
 
   function go(next){
@@ -606,6 +770,92 @@ a{color:inherit;text-decoration:none}
   });
   document.getElementById('menu').addEventListener('click', () => go(0));
 
+  /* ---------- 언어 ----------
+     브랜드명은 고유명사라 번역하지 않고 각 언어권 표기만 맞춘다. */
+  const I18N = {
+    ko:{b1:'피더린',b2:'바루랩',b3:'탐뷰티',scroll:'스크롤'},
+    en:{b1:'PYDERIN',b2:'BARULAB',b3:'TAM BEAUTY',scroll:'SCROLL'},
+    zh:{b1:'PYDERIN',b2:'BARULAB',b3:'TAM BEAUTY',scroll:'滚动'},
+    ja:{b1:'PYDERIN',b2:'BARULAB',b3:'TAM BEAUTY',scroll:'スクロール'},
+  };
+  const DESC = {
+    ko:{
+      pyderin:'피더린은 의료 전문성과 성분 투명성을 바탕으로,<br>피부 본연의 회복에 집중하는 PDRN 전문 브랜드입니다.',
+      barulab:'바루랩은 20년 피부과학 연구와 비건·저자극 <br class="b3">성분을 바탕으로, <br class="b2">피부를 바로 잡는 데 집중하는 <br class="b3">스킨케어 전문 브랜드입니다.',
+      tam:'탐뷰티는 식물 유래 원료와 친환경 공법을 바탕으로,<br>클린 뷰티에 특화된 코스메틱 라이프스타일 브랜드입니다.',
+    },
+    en:{
+      pyderin:'Built on medical expertise and ingredient transparency,<br>a PDRN specialist focused on true skin recovery.',
+      barulab:'Twenty years of skin science, vegan and low-irritant,<br>a skincare brand devoted to setting skin right.',
+      tam:'Rooted in plant-derived ingredients and clean processes,<br>a clean-beauty cosmetic lifestyle brand.',
+    },
+    zh:{
+      pyderin:'以医疗专业与成分透明为基础，<br>专注肌肤自我修复的 PDRN 专业品牌。',
+      barulab:'以二十年皮肤科学研究与纯素低刺激成分为基础，<br>专注于调理肌肤的护肤专业品牌。',
+      tam:'以植物来源原料与环保工艺为基础，<br>专注纯净美妆的化妆品生活方式品牌。',
+    },
+    ja:{
+      pyderin:'医療の専門性と成分の透明性をもとに、<br>肌本来の回復に向き合うPDRN専門ブランドです。',
+      barulab:'20年の皮膚科学研究とヴィーガン・低刺激成分をもとに、<br>肌を整えることに集中するスキンケアブランドです。',
+      tam:'植物由来の原料と環境にやさしい製法をもとに、<br>クリーンビューティーに特化したブランドです。',
+    },
+  };
+  /* 마지막 화면 하단 문구 — 헤드라인은 영문 고정, 이 문단만 번역 */
+  const S4 = {
+    ko:'안티에이징을 위한 PDRN, 자연에서 찾은 순수 클린 뷰티, 그리고 최첨단 바이오 기술까지.<br>'
+      +'피더린, 바루랩, 탐뷰티는 프로페셔널 뷰티 업계의 가능성을 확장하는 세 가지 대표 브랜드입니다.<br><br>'
+      +'이들은 각자의 영역에서 쌓아온 전문성으로 고객 한 분 한 분의 특별한 니즈에 맞는 뷰티 솔루션을 제안합니다.<br>'
+      +'광범위한 포트폴리오 안에서 최적의 제품을 찾을 수 있도록, 맞춤형 선택지를 제공하는 것이 우리의 역할이자 가치입니다.',
+    en:'PDRN for anti-aging, pure clean beauty found in nature, and advanced bio technology.<br>'
+      +'PYDERIN, BARULAB and TAM BEAUTY expand what professional beauty can do.<br><br>'
+      +'With the expertise each has built in its own field, they propose solutions for every need.<br>'
+      +'Offering tailored choices within a broad portfolio is our role and our value.',
+    zh:'用于抗衰老的 PDRN、源自自然的纯净美妆，以及尖端生物技术。<br>'
+      +'PYDERIN、BARULAB 与 TAM BEAUTY 是拓展专业美妆产业可能性的三大代表品牌。<br><br>'
+      +'它们以各自领域积累的专业，为每一位顾客提出契合其需求的美妆方案。<br>'
+      +'在广泛的产品组合中提供量身定制的选择，正是我们的角色与价值。',
+    ja:'アンチエイジングのためのPDRN、自然から見つけたピュアなクリーンビューティー、そして最先端のバイオ技術まで。<br>'
+      +'PYDERIN、BARULAB、TAM BEAUTYはプロフェッショナルビューティー業界の可能性を広げる3つのブランドです。<br><br>'
+      +'それぞれの領域で培った専門性で、お客様一人ひとりのニーズに合う提案をします。<br>'
+      +'幅広いポートフォリオの中から最適な選択肢を届けることが、私たちの役割であり価値です。',
+  };
+
+  const BRANDKEY = p => p.classList.contains('b-pyderin') ? 'pyderin'
+                      : p.classList.contains('b-barulab') ? 'barulab' : 'tam';
+
+  function setLang(l){
+    document.documentElement.lang = l;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const t = I18N[l][el.dataset.i18n];
+      if (!t) return;
+      const dbl = el.querySelectorAll('i');          // 호버용으로 두 벌 겹친 것
+      if (dbl.length === 2) dbl.forEach(n => n.textContent = t);
+      else el.textContent = t;
+    });
+    panels.forEach(p => {
+      const d = p.querySelector('.desc');
+      d.innerHTML = DESC[l][BRANDKEY(p)];
+      splitDesc(d);                       // 글자 단위 파도 다시 준비
+    });
+    const sp = document.querySelector('.s4-p');
+    sp.innerHTML = S4[l];
+    splitDesc(sp);
+    indexChars();
+    document.querySelectorAll('#langs button').forEach(b =>
+      b.classList.toggle('on', b.dataset.lang === l));
+  }
+  document.getElementById('langs').addEventListener('click', e => {
+    const b = e.target.closest('button[data-lang]');
+    if (b) setLang(b.dataset.lang);
+  });
+
+  /* 브랜드명 클릭 -> 해당 소개 화면으로 */
+  document.querySelector('.brandnav').addEventListener('click', e => {
+    const b = e.target.closest('button[data-go]');
+    if (b) { tpReset(); go(+b.dataset.go); }
+  });
+
+
 
 
   const fit = () => {
@@ -615,6 +865,8 @@ a{color:inherit;text-decoration:none}
   addEventListener('resize', () => { fit(); indexChars(); });
   fit();
   indexChars();
+
+  setLang('ko');
 
   layout();
   applyTP();
