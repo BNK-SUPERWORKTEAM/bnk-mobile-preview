@@ -330,7 +330,7 @@ a{color:inherit;text-decoration:none}
 .s4-p{--t:560ms}
 
 /* ---------- 상단바 / 인덱스 ---------- */
-.topbar{position:absolute;left:0;top:0;width:100%;z-index:5;pointer-events:none}
+.topbar{position:absolute;left:0;top:0;width:100%;z-index:25;pointer-events:none}
 .topbar .menu{
   position:absolute;right:calc(40 * var(--s) * 1px);top:calc(30 * var(--s) * 1px);
   display:flex;align-items:center;
@@ -807,7 +807,7 @@ a{color:inherit;text-decoration:none}
         /* 활성(메인) 슬롯만 데스크톱과 같은 비율(66.9%)로 이미지/브랜드 바를 나눠
            로고·문구·아이콘이 보일 공간을 남긴다. 다음 브랜드가 보이는 미리보기(peek)
            슬롯과 첫 화면(hero) 3단은 텍스트가 없으므로 이미지가 슬롯을 항상 꽉 채운다. */
-        if (slot === 'full') { by = 0; bh = 723; }
+        if (slot === 'full') { by = 0; bh = 650; }   // 브랜드 바 세로 여백 확보(기존 723 → 화살표·여백 더 넓게)
         else { by = 0; bh = 1080; }
         p.style.setProperty('--y', dvh(y));
         p.style.setProperty('--hf', pc(h));
