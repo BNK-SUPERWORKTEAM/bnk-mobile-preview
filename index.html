@@ -413,17 +413,21 @@ a{color:inherit;text-decoration:none}
   .cue i b{width:calc(9 * var(--sm) * 1px);height:calc(9 * var(--sm) * 1px)}
   .cue span{font-size:calc(11 * var(--sm) * 1px)!important;letter-spacing:.18em!important}
 
-  /* 마지막 화면 문구 — 컬럼이 차지하지 않는 화면 하단 여백(33.06%)에 배치 */
+  /* 마지막 화면 문구 — 이미지가 전체화면을 꽉 채운 뒤 그 위로 뜨는 오버레이.
+     사진 밝기가 제각각이라 흰 글자 + 아래에서 짙어지는 스크림으로 항상 읽히게 한다. */
   .s4{
-    left:0!important;right:0;top:66.944%!important;bottom:0;height:auto!important;
-    width:100%!important;padding:0 calc(24 * var(--sm) * 1px);
-    justify-content:center;gap:calc(12 * var(--sm) * 1px);
+    position:fixed!important;left:0!important;right:0;bottom:0;top:auto!important;
+    height:auto!important;width:100%!important;
+    padding:calc(28 * var(--sm) * 1px) calc(24 * var(--sm) * 1px)
+            calc(24 * var(--sm) * 1px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(to top, rgba(0,0,0,.78), rgba(0,0,0,.32) 60%, transparent);
+    justify-content:flex-end;gap:calc(12 * var(--sm) * 1px);
   }
-  .s4-h{font-size:calc(21 * var(--sm) * 1px)!important;line-height:1.24!important}
+  .s4-h{font-size:calc(21 * var(--sm) * 1px)!important;line-height:1.24!important;color:#fff!important}
   .s4-p{
     font-size:calc(12.5 * var(--sm) * 1px)!important;
     line-height:calc(18 * var(--sm) * 1px)!important;
-    white-space:normal!important;
+    white-space:normal!important;color:#fff!important;opacity:.88!important;
   }
 
   .topbar .menu{
@@ -639,15 +643,12 @@ a{color:inherit;text-decoration:none}
   const ACTIVE_W = 1285, PEEK_W = 635;
 
   /* 모바일 — 가로 폭(x/w) 대신 세로 높이(y/h)로 축만 바꾼 대응표.
-     같은 1920x1080 기준 비율(1285:406:229, 66.927%:33.073%)을 그대로
-     세로에 적용한다 — 밴드/라벨은 "패널 자기 높이" 기준 %라 by/bh 값은
-     그대로 재사용해도 된다(퍼센트는 항상 그 패널의 실제 높이에 맞춰진다). */
-  const MOBILE_HERO = [
-    {y:0,   h:723, by:0,   bh:723},
-    {y:723, h:228, by:349, bh:507},
-    {y:951, h:129, by:614, bh:374},
-  ];
-  const M_ACTIVE_H = 723, M_PEEK_H = 357;
+     비율은 데스크톱 것을 재사용하지 않고 모바일 전용으로 지정한다:
+     첫 화면(3단) = 6:3:1, 스크롤 후 활성/다음 브랜드 = 7:3.
+     색 배경이 보이지 않도록 by=0,bh=1080(=0%/100%) 고정 —
+     사진이 항상 슬롯을 빈틈없이 꽉 채운다. */
+  const MOBILE_HERO = [ {y:0,   h:648}, {y:648, h:324}, {y:972, h:108} ];  // 6:3:1
+  const M_ACTIVE_H = 756, M_PEEK_H = 324;                                  // 7:3
 
   const mq = matchMedia('(max-width:820px)');
   let isMobile = mq.matches;
@@ -687,36 +688,67 @@ a{color:inherit;text-decoration:none}
       return;
     }
 
-    const e   = smooth(tp);
-    /* 세 칸이 같은 높이를 공유한다 -> 언제나 맞붙어 있고 함께 작아진다.
-       723(한 장만 보이는 상태) -> 360(세 장이 화면을 정확히 채우는 상태) */
-    const h   = lerp(723, 360, e);
-    const W   = lerp(1285, 639, e);
     const pct = v => (v / 1080 * 100) + '%';
-
+    const band = last.querySelector('.band');
+    const e2 = last.querySelector('.e2'), e3 = last.querySelector('.e3');
+    const bar = last.querySelector('.label');
     last.classList.toggle('morphing', tp > 0);
-    last.style.setProperty('--wf', (W / 1920 * 100) + 'vw');
     last.style.setProperty('--fo', clamp(tp / .12));   // 비워지는 자리는 흰 바닥
 
-    const band = last.querySelector('.band');
-    band.style.setProperty('--bh',  pct(h));
-    band.style.setProperty('--bw',  (W / 1920 * 100) + 'vw');
-    band.style.setProperty('--opy', lerp(50, 40.9, e) + '%');
+    if (isMobile) {
+      /* 모바일: 3단계.
+         0~.45  탐뷰티 패널 자체가 70%(활성 슬롯) -> 100%(전체화면)로 자란다
+                — 이 구간엔 사진 한 장 그대로, 아직 나뉘지 않는다.
+         .35~.85 다 자란 화면을 세 장으로 등분한다(겹치는 구간을 둬서 자연스럽게 이어짐)
+         .8~1    다 채워진 이미지 위로 마지막 문구가 하단에서 오버레이로 떠오른다 */
+      const grow  = smooth(phase(tp, 0, .45));
+      const hf    = lerp(M_ACTIVE_H / 1080, 1, grow);        // 패널 자기 높이(스테이지 기준 %)
+      last.style.setProperty('--hf', (hf * 100) + '%');
 
-    /* 바루랩·피더린은 첫 칸 바로 밑에 이어 붙는다 */
-    const e2 = last.querySelector('.e2'), e3 = last.querySelector('.e3');
-    e2.style.top = pct(h);      e2.style.height = pct(h);
-    e3.style.top = pct(h * 2);  e3.style.height = pct(h);
+      const third = 1 / 3;
+      const split = smooth(phase(tp, .35, .85));
+      const bandFr = lerp(1, third, split);
+      const e2Fr   = lerp(0, third, smooth(phase(tp, .42, .9)));
+      const e3Fr   = lerp(0, third, smooth(phase(tp, .55, .97)));
 
-    /* 브랜드 바: 첫 칸 아래를 덮고 있다가 통째로 위로 올라가 이미지 뒤로 숨는다 */
-    const bar = last.querySelector('.label');
-    const barH = 1080 - h;
-    bar.style.setProperty('--bar-top', pct(h));
-    bar.style.setProperty('--bar-h',   pct(barH));
-    bar.style.setProperty('--ly',      pct(-barH * phase(tp, 0, .5)).replace('%','vh'));
-    bar.style.pointerEvents = tp > .05 ? 'none' : '';
+      band.style.setProperty('--by', '0%');
+      band.style.setProperty('--bh', (bandFr * 100) + '%');
+      e2.style.top = (bandFr * 100) + '%';               e2.style.height = (e2Fr * 100) + '%';
+      e3.style.top = ((bandFr + e2Fr) * 100) + '%';      e3.style.height = (e3Fr * 100) + '%';
 
-    s4.classList.toggle('on', tp > .72);
+      const barH = 1 - bandFr;
+      bar.style.setProperty('--bar-top', (bandFr * 100) + '%');
+      bar.style.setProperty('--bar-h',   (barH * 100) + '%');
+      bar.style.setProperty('--ly',      (-barH * 100 * phase(tp, 0, .3)) + 'vh');
+      bar.style.pointerEvents = tp > .05 ? 'none' : '';
+
+      s4.classList.toggle('on', tp > .8);
+    } else {
+      const e = smooth(tp);
+      /* 세 칸이 같은 높이를 공유한다 -> 언제나 맞붙어 있고 함께 작아진다.
+         723(한 장만 보이는 상태) -> 360(세 장이 화면을 정확히 채우는 상태) */
+      const h = lerp(723, 360, e);
+      const W = lerp(1285, 639, e);
+
+      last.style.setProperty('--wf', (W / 1920 * 100) + 'vw');
+      band.style.setProperty('--bh',  pct(h));
+      band.style.setProperty('--bw',  (W / 1920 * 100) + 'vw');
+      band.style.setProperty('--opy', lerp(50, 40.9, e) + '%');
+
+      /* 바루랩·피더린은 첫 칸 바로 밑에 이어 붙는다 */
+      e2.style.top = pct(h);      e2.style.height = pct(h);
+      e3.style.top = pct(h * 2);  e3.style.height = pct(h);
+
+      /* 브랜드 바: 첫 칸 아래를 덮고 있다가 통째로 위로 올라가 이미지 뒤로 숨는다 */
+      const barH = 1080 - h;
+      bar.style.setProperty('--bar-top', pct(h));
+      bar.style.setProperty('--bar-h',   pct(barH));
+      bar.style.setProperty('--ly',      pct(-barH * phase(tp, 0, .5)).replace('%','vh'));
+      bar.style.pointerEvents = tp > .05 ? 'none' : '';
+
+      s4.classList.toggle('on', tp > .72);
+    }
+
     counter.style.opacity = tp > .05 ? '0' : '';
     const r = last.querySelector('.roll');
     if (r && tp > .02) rollStop(r);
@@ -742,13 +774,13 @@ a{color:inherit;text-decoration:none}
       if (isMobile) {
         let y, h;
         if (!scrolled) {
-          ({y, h, by, bh} = MOBILE_HERO[i]); slot = 'hero';
+          ({y, h} = MOBILE_HERO[i]); slot = 'hero';
         } else if (i <= a) {
-          y = (i - a) * M_ACTIVE_H; h = M_ACTIVE_H; by = 0; bh = 723; slot = 'full';
+          y = (i - a) * M_ACTIVE_H; h = M_ACTIVE_H; slot = 'full';
         } else {
-          y = M_ACTIVE_H + (i - a - 1) * M_PEEK_H; h = M_PEEK_H;
-          by = 247; bh = 586; slot = 'peek';
+          y = M_ACTIVE_H + (i - a - 1) * M_PEEK_H; h = M_PEEK_H; slot = 'peek';
         }
+        by = 0; bh = 1080;   // 색 배경 없이 사진이 슬롯을 항상 꽉 채운다
         p.style.setProperty('--y', dvh(y));
         p.style.setProperty('--hf', pc(h));
       } else {
