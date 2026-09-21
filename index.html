@@ -368,15 +368,15 @@ a{color:inherit;text-decoration:none}
 
   /* 로고 — 브랜드마다 원래 가로세로 비율은 유지하되 작은 고정 높이로 */
   .logo{left:calc(24 * var(--sm) * 1px)!important;bottom:auto!important;
-        top:calc(20 * var(--sm) * 1px)!important}
+        top:calc(10 * var(--sm) * 1px)!important}
   .b-pyderin .logo{width:calc(125 * var(--sm) * 1px)!important;height:calc(36 * var(--sm) * 1px)!important}
   .b-barulab .logo{width:calc(230 * var(--sm) * 1px)!important;height:calc(32 * var(--sm) * 1px)!important}
-  .b-tam     .logo{width:calc(75  * var(--sm) * 1px)!important;height:calc(35 * var(--sm) * 1px)!important}
+  .b-tam     .logo{width:calc(100 * var(--sm) * 1px)!important;height:calc(47 * var(--sm) * 1px)!important}
 
   /* 문구 — 로고 아래로 내려서 쌓고, 좁은 폭에 맞춰 자동 줄바꿈 */
   .desc{
     left:calc(24 * var(--sm) * 1px)!important;right:calc(24 * var(--sm) * 1px);
-    top:calc(64 * var(--sm) * 1px)!important;
+    top:calc(65 * var(--sm) * 1px)!important;   /* 가장 큰 탐뷰티 로고(높이 47) 아래로 여유 있게 */
     font-size:calc(14 * var(--sm) * 1px)!important;
     line-height:calc(20 * var(--sm) * 1px)!important;
     letter-spacing:normal!important;white-space:normal!important;
@@ -387,7 +387,11 @@ a{color:inherit;text-decoration:none}
   /* ↗ 버튼 — 자리(오른쪽 아래 모서리)는 그대로, 크기만 축소.
      .dot/.dot img 는 기본적으로 데스크톱 --s 를 쓰므로 놔두면 모바일에서
      거의 안 보일 만큼 작아진다 — --sm 기준으로 반드시 같이 덮어써야 한다. */
-  .cta{width:calc(72 * var(--sm) * 1px)!important;height:calc(72 * var(--sm) * 1px)!important}
+  .cta{
+    width:calc(72 * var(--sm) * 1px)!important;height:calc(72 * var(--sm) * 1px)!important;
+    /* 로고의 왼쪽 여백(24px)과 맞춰 안쪽으로 들여서 좌우 여백을 대칭시킨다 */
+    right:calc(24 * var(--sm) * 1px)!important;bottom:calc(20 * var(--sm) * 1px)!important;
+  }
   .cta .dot{width:calc(52 * var(--sm) * 1px)!important;height:calc(52 * var(--sm) * 1px)!important}
   .cta .dot img{width:calc(26 * var(--sm) * 1px)!important;height:calc(26 * var(--sm) * 1px)!important}
 
@@ -707,11 +711,14 @@ a{color:inherit;text-decoration:none}
       const hf    = lerp(M_ACTIVE_H / 1080, 1, grow);        // 패널 자기 높이(스테이지 기준 %)
       last.style.setProperty('--hf', (hf * 100) + '%');
 
+      /* bandFr 은 평소 활성 슬롯의 이미지 비율(650/1080)에서 시작해야 한다.
+         1에서 시작하면 tp=0(스크롤 전 방금 도착한 상태)에 로고·문구·아이콘이
+         있는 브랜드 바가 비율 0으로 접혀 사라져 보이는 버그가 생긴다. */
       const third = 1 / 3;
-      const split = smooth(phase(tp, .35, .85));
-      const bandFr = lerp(1, third, split);
-      const e2Fr   = lerp(0, third, smooth(phase(tp, .42, .9)));
-      const e3Fr   = lerp(0, third, smooth(phase(tp, .55, .97)));
+      const baseBand = 650 / 1080;
+      const bandFr = lerp(baseBand, third, smooth(phase(tp, .1, .85)));
+      const e2Fr   = lerp(0, third, smooth(phase(tp, .25, .9)));
+      const e3Fr   = lerp(0, third, smooth(phase(tp, .4, .97)));
 
       band.style.setProperty('--by', '0%');
       band.style.setProperty('--bh', (bandFr * 100) + '%');
@@ -898,6 +905,7 @@ a{color:inherit;text-decoration:none}
     if (next === state || locked) return;
     state = next; locked = true;
     layout();
+    applyTP();   // 탐뷰티로 막 넘어왔을 때 라벨 바가 방금 계산과 어긋나지 않도록 즉시 동기화
     setTimeout(() => { locked = false; }, 700);
   }
 
