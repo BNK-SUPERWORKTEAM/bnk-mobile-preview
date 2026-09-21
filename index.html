@@ -368,21 +368,27 @@ a{color:inherit;text-decoration:none}
 
   /* 로고 — 브랜드마다 원래 가로세로 비율은 유지하되 작은 고정 높이로 */
   .logo{left:calc(24 * var(--sm) * 1px)!important;bottom:auto!important;
-        top:calc(10 * var(--sm) * 1px)!important}
+        top:calc(24 * var(--sm) * 1px)!important}   /* 화살표 버튼과 동일한 여백(24px)으로 통일 */
   .b-pyderin .logo{width:calc(125 * var(--sm) * 1px)!important;height:calc(36 * var(--sm) * 1px)!important}
   .b-barulab .logo{width:calc(230 * var(--sm) * 1px)!important;height:calc(32 * var(--sm) * 1px)!important}
   .b-tam     .logo{width:calc(100 * var(--sm) * 1px)!important;height:calc(47 * var(--sm) * 1px)!important}
+  /* 문구 시작 위치 = 24(로고 여백) + 브랜드별 로고 높이 + 10(간격) —
+     로고 크기가 브랜드마다 달라서 문구 위치도 그에 맞춰 따로 잡는다.
+     피더린(36)은 위 .desc 기본값(70)을 그대로 쓴다. */
+  .b-barulab .desc{top:calc(66 * var(--sm) * 1px)!important}
+  .b-tam     .desc{top:calc(81 * var(--sm) * 1px)!important}
 
   /* 문구 — 로고 아래로 내려서 쌓고, 좁은 폭에 맞춰 자동 줄바꿈 */
   .desc{
     left:calc(24 * var(--sm) * 1px)!important;right:calc(24 * var(--sm) * 1px);
-    top:calc(65 * var(--sm) * 1px)!important;   /* 가장 큰 탐뷰티 로고(높이 47) 아래로 여유 있게 */
+    top:calc(70 * var(--sm) * 1px)!important;   /* 24(로고 여백) + 36(피더린 로고 높이) + 10(간격) */
     font-size:calc(14 * var(--sm) * 1px)!important;
     line-height:calc(20 * var(--sm) * 1px)!important;
     letter-spacing:normal!important;white-space:normal!important;
   }
   .desc br.b2{display:none!important}   /* 자동 줄바꿈에 맡기므로 수동 줄바꿈은 끈다 */
-  .desc br.b3{display:none!important}
+  .desc br.b3{display:none!important}   /* 바루랩의 데스크톱용 3줄 강제 줄바꿈도 꺼서
+                                            좁은 폭에서 자연스럽게 접히게 한다(더 짧아짐) */
 
   /* ↗ 버튼 — 자리(오른쪽 아래 모서리)는 그대로, 크기만 축소.
      .dot/.dot img 는 기본적으로 데스크톱 --s 를 쓰므로 놔두면 모바일에서
@@ -390,7 +396,7 @@ a{color:inherit;text-decoration:none}
   .cta{
     width:calc(72 * var(--sm) * 1px)!important;height:calc(72 * var(--sm) * 1px)!important;
     /* 로고의 왼쪽 여백(24px)과 맞춰 안쪽으로 들여서 좌우 여백을 대칭시킨다 */
-    right:calc(24 * var(--sm) * 1px)!important;bottom:calc(20 * var(--sm) * 1px)!important;
+    right:calc(24 * var(--sm) * 1px)!important;bottom:calc(24 * var(--sm) * 1px)!important;
   }
   .cta .dot{width:calc(52 * var(--sm) * 1px)!important;height:calc(52 * var(--sm) * 1px)!important}
   .cta .dot img{width:calc(26 * var(--sm) * 1px)!important;height:calc(26 * var(--sm) * 1px)!important}
@@ -402,9 +408,9 @@ a{color:inherit;text-decoration:none}
     flex-direction:row;align-items:center;
   }
   .brandnav{gap:calc(12 * var(--sm) * 1px)}
-  .brandnav button{font-size:calc(12 * var(--sm) * 1px)!important}
+  .brandnav button{font-size:calc(15 * var(--sm) * 1px)!important}
   .langs{gap:calc(9 * var(--sm) * 1px)}
-  .langs button{font-size:calc(10 * var(--sm) * 1px)!important}
+  .langs button{font-size:calc(13 * var(--sm) * 1px)!important}
 
   /* 스크롤 표시 — 브랜드 바 안이 너무 좁아 화면 하단 중앙에 고정 */
   .cue{
@@ -417,6 +423,25 @@ a{color:inherit;text-decoration:none}
   .cue i b{width:calc(9 * var(--sm) * 1px);height:calc(9 * var(--sm) * 1px)}
   .cue span{font-size:calc(11 * var(--sm) * 1px)!important;letter-spacing:.18em!important}
 
+  /* 데스크톱 키프레임(translateY 800%/1600%)은 트랙이 크고 점이 14px일 때
+     맞춘 값이라, 모바일처럼 트랙 30px·점 9px로 줄이면 그 비율 그대로는
+     트랙 밖까지 튀어나간다. 같은 이름으로 다시 선언해 이 구간에서만
+     교체한다 — 점 자신의 높이(9px) 기준 233%(=트랙-점 간격 21px)가
+     정확히 트랙 안쪽 끝까지만 닿는 값. */
+  @keyframes cuedot{
+    0%,8%    {transform:translateY(0) scale(1,1);filter:blur(0);
+              animation-timing-function:cubic-bezier(.55,0,.85,.35)}
+    30%      {transform:translateY(117%) scale(.66,1.66);filter:blur(.5px)}
+    46%      {transform:translateY(233%) scale(1.22,.8);filter:blur(0);
+              animation-timing-function:cubic-bezier(.18,.9,.32,1)}
+    54%      {transform:translateY(233%) scale(1,1);
+              animation-timing-function:cubic-bezier(.55,0,.85,.35)}
+    74%      {transform:translateY(117%) scale(.66,1.66);filter:blur(.5px)}
+    90%      {transform:translateY(0) scale(1.18,.84);filter:blur(0);
+              animation-timing-function:cubic-bezier(.18,.9,.32,1)}
+    100%     {transform:translateY(0) scale(1,1)}
+  }
+
   /* 마지막 문구 화면 — 이미지 3장이 전체화면으로 다 나온 뒤, 한 번 더 스크롤해야
      나오는 완전히 별도의 흰 화면. 사진 위에 겹치지 않도록 이미지 뷰를 위로
      밀어내고 그 자리에 이 화면이 아래에서 올라와 교체된다(오버레이 아님). */
@@ -425,7 +450,7 @@ a{color:inherit;text-decoration:none}
     height:100dvh!important;width:100%!important;
     background:#fff;
     padding:0 calc(28 * var(--sm) * 1px);
-    justify-content:center;gap:calc(14 * var(--sm) * 1px);
+    justify-content:center;gap:calc(34 * var(--sm) * 1px);
     transform:translateY(var(--slideY,100dvh));
     z-index:20;
   }
@@ -686,8 +711,9 @@ a{color:inherit;text-decoration:none}
       last.querySelector('.e2').style.height = '0%';
       last.querySelector('.e3').style.height = '0%';
       const b0 = last.querySelector('.label');
-      b0.style.removeProperty('--bar-top');
-      b0.style.removeProperty('--bar-h');
+      /* --bar-top/--bar-h 는 layout() 이 band 와 짝지어 항상 새로 정하므로
+         여기서 지우면 안 된다 — 지우면 CSS 기본값(데스크톱 수치)으로
+         되돌아가 band 와 어긋나며 로고·문구·화살표 공간이 좁아진다. */
       b0.style.setProperty('--ly', '0px');
       b0.style.pointerEvents = '';
       s4.classList.remove('on');
@@ -715,7 +741,7 @@ a{color:inherit;text-decoration:none}
          1에서 시작하면 tp=0(스크롤 전 방금 도착한 상태)에 로고·문구·아이콘이
          있는 브랜드 바가 비율 0으로 접혀 사라져 보이는 버그가 생긴다. */
       const third = 1 / 3;
-      const baseBand = 650 / 1080;
+      const baseBand = 570 / 1080;   // layout() 의 bh 값(브랜드 바 여백 확보용)과 항상 맞춘다
       const bandFr = lerp(baseBand, third, smooth(phase(tp, .1, .85)));
       const e2Fr   = lerp(0, third, smooth(phase(tp, .25, .9)));
       const e3Fr   = lerp(0, third, smooth(phase(tp, .4, .97)));
@@ -814,7 +840,7 @@ a{color:inherit;text-decoration:none}
         /* 활성(메인) 슬롯만 데스크톱과 같은 비율(66.9%)로 이미지/브랜드 바를 나눠
            로고·문구·아이콘이 보일 공간을 남긴다. 다음 브랜드가 보이는 미리보기(peek)
            슬롯과 첫 화면(hero) 3단은 텍스트가 없으므로 이미지가 슬롯을 항상 꽉 채운다. */
-        if (slot === 'full') { by = 0; bh = 650; }   // 브랜드 바 세로 여백 확보(기존 723 → 화살표·여백 더 넓게)
+        if (slot === 'full') { by = 0; bh = 570; }   // 브랜드 바 세로 여백 확보(로고+문구+버튼이 빠듯해 더 키움)
         else { by = 0; bh = 1080; }
         p.style.setProperty('--y', dvh(y));
         p.style.setProperty('--hf', pc(h));
@@ -837,6 +863,15 @@ a{color:inherit;text-decoration:none}
       const band = p.querySelector('.band');
       band.style.setProperty('--by', pc(by));
       band.style.setProperty('--bh', pc(bh));
+
+      /* 라벨(브랜드 바)의 위치·높이를 band 와 항상 같은 값으로 맞춘다.
+         예전엔 CSS 기본값(66.944%/33.056%, 데스크톱 수치)에 기대고 있었는데,
+         모바일에서 이미지 비율(bh)을 다른 값으로 바꿔도 라벨은 그 기본값
+         그대로 남아 있어 로고·문구·화살표가 들어갈 공간이 실제보다 좁아지는
+         버그가 있었다. band 와 라벨이 항상 짝을 이루도록 여기서 함께 정한다. */
+      const label = p.querySelector('.label');
+      label.style.setProperty('--bar-top', pc(bh));
+      label.style.setProperty('--bar-h',   pc(1080 - bh));
 
       const cs = getComputedStyle(p);
       band.style.setProperty('--opy', (cs.getPropertyValue('--opy-' + slot) || '50%').trim());
