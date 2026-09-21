@@ -4,10 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BNK Integrated Page</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap">
+<!-- 본문 폰트: Pretendard 를 글자 범위별 조각(dynamic subset)으로 — 화면에 쓰인 조각만 받는다.
+     일본어·중국어 폰트(Noto)는 그 언어를 고를 때만 스크립트가 불러온다 (첫 화면 렌더링을 막지 않게) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="assets/fonts/pretendard.css">
+<!-- 개발용 전환 계측: 주소 끝에 ?debug 또는 ?speed=0.7 을 붙일 때만 불러온다 (tools/debug.js) -->
+<script>
+if (/[?&](debug|speed)\b/.test(location.search))
+  document.head.appendChild(Object.assign(document.createElement('script'), {src: 'tools/debug.js'}));
+</script>
 <style>
 /* ===========================================================
    피그마 통합페이지(1920x1080) 기준.
@@ -92,10 +97,15 @@ a{color:inherit;text-decoration:none}
   object-fit:cover;object-position:50% var(--opy,50%);
 }
 
-/* 피더린만 사진(peek)과 영상(활성)이 다르므로 교차 전환 */
+/* 옆 칸(peek)에선 대표 사진(.alt), 메인 자리에선 영상·롤(.main) — 교차 전환.
+   위에 있는 .main 만 페이드하고 아래 .alt 는 불투명하게 받쳐 둔다.
+   둘이 동시에 반투명해지면 뒤의 .fill(같은 사진, 다른 크롭)까지 비쳐 세 장이 겹쳐 보인다.
+   show-main: 메인 자리 + 왼쪽으로 빠져나간 패널 (나가는 동안 사진을 바꾸지 않는다) */
 .panel.has-alt .main{opacity:0}
-.panel.has-alt.is-active .main{opacity:1}
-.panel.has-alt.is-active .alt{opacity:0}
+.panel.has-alt.show-main .main{opacity:1}
+.panel.has-alt .alt{transition:object-position var(--d-panel) var(--e-expo)}
+.panel.has-alt.show-main .alt{opacity:0;
+  transition:object-position var(--d-panel) var(--e-expo),opacity 0s linear 420ms}
 
 /* 쌓임 순서: 바닥(흰색) < 브랜드 바 < 컬럼 이미지 < 원래 이미지
    -> 브랜드 바가 위로 올라가면 원래 이미지 뒤로 가려진다 */
@@ -122,27 +132,14 @@ a{color:inherit;text-decoration:none}
 .panel.morphing .label{transition:none!important}
 
 /* ---------- 로고: 64조각 파도 ----------
-   마스크는 로고 박스 하나만. 조각은 clip-path로 좌우만 잘라
-   세로는 자유롭게 흐르므로 조각별 잘린 가장자리(계단)가 없다. */
-.logo{position:absolute;display:flex;align-items:flex-end;overflow:hidden;--n:64;
-      background-repeat:no-repeat;background-size:100% 100%}
-/* 파도가 끝나면 조각을 감추고 원본 이미지 한 장으로 교체 —
-   조각 경계(소수점 반올림으로 생기는 세로 줄)가 정지 상태에서 보이지 않게 */
+   조각을 DOM 요소로 두면 조각마다 로고 크기만 한 합성 레이어가 생겨
+   (64조각 x 3브랜드) 전환 중 프레임이 밀린다 -> 캔버스 한 장에 그린다.
+   지연은 --t-logo / --step-logo, 곡선·길이는 스크립트의 LG 참고. */
+.logo{position:absolute;overflow:hidden;background-repeat:no-repeat;background-size:100% 100%}
+.logo canvas{position:absolute;left:0;top:0;width:100%;height:100%}
+/* 파도가 끝나면 캔버스를 감추고 원본 이미지 한 장으로 교체 */
 .logo.settled{background-image:var(--src)}
-.logo.settled .sl{visibility:hidden}
-.logo .sl{width:calc(100% / var(--n));height:100%;flex:none;clip-path:inset(-300% 0 -300% 0)}
-.logo .sl i{
-  display:block;height:100%;
-  width:calc(100% * var(--n));
-  margin-left:calc(var(--i) * -100%);
-  background-repeat:no-repeat;background-size:100% 100%;
-  transform:translateY(100%);opacity:0;
-  transition:transform 840ms var(--e-soft),opacity 300ms linear;
-}
-.panel.is-active .logo .sl i{
-  transform:none;opacity:1;
-  transition-delay:calc(var(--t-logo) + var(--i) * var(--step-logo));
-}
+.logo.settled canvas{visibility:hidden}
 
 /* ---------- 문구: 글자 단위 파도 ---------- */
 .desc{
@@ -161,6 +158,14 @@ a{color:inherit;text-decoration:none}
   transform:none;opacity:1;
   transition-delay:calc(var(--t-desc) + var(--i) * var(--step-char));
 }
+/* 글자가 파도 순서대로 하나씩 움직이기 시작할 때마다 합성 레이어가 새로 생기면
+   그때마다 화면 갱신이 막혀 문구가 올라오는 동안 15fps 로 끊긴다.
+   다음에 메인이 될 수 있는 패널의 글자는 한가할 때 미리 레이어로 만들어 둔다 (prepText) */
+.panel.prep .desc .ch{will-change:transform,opacity}
+/* 나갈 때는 글자들이 지연 없이 한꺼번에 내려가며 사라진다 = 문단 전체가 움직이는 것과 같다.
+   글자마다 움직이면 글자 수만큼 레이어가 생기므로 문단 한 덩어리로 내보낸다 (descLeave) */
+.desc.leaving,.s4-h.leaving,.s4-p.leaving{transform:translateY(.62em);opacity:0;
+              transition:transform 760ms var(--e-soft),opacity 380ms linear}
 
 /* ---------- 브랜드별 실측값 ---------- */
 .b-pyderin .logo{left:calc(112 * var(--s) * 1px);bottom:calc(144 * var(--s) * 1px);
@@ -358,13 +363,14 @@ a{color:inherit;text-decoration:none}
 
     <!-- 01 PYDERIN -->
     <article class="panel b-pyderin has-alt"
-             style="--bg:#9B2246;--shot:url('assets/photo-pyderin-hero.jpg');
+             style="--bg:#9B2246;--shot:url('assets/photo-pyderin-hero.webp');
                     --opy-hero:38%;--opy-full:50%;--opy-peek:50%">
       <div class="band">
         <div class="fill"></div>
         <div class="crop">
-          <img class="alt" src="assets/photo-pyderin-hero.jpg" alt="">
-          <video class="main" src="assets/video-pyderin.mp4" poster="assets/photo-pyderin.png"
+          <!-- 첫 화면에서 가장 큰 이미지 -> 가장 먼저 받는다 -->
+          <img class="alt" src="assets/photo-pyderin-hero.webp" alt="" fetchpriority="high">
+          <video class="main" src="assets/video-pyderin.mp4" poster="assets/photo-pyderin.webp"
                  muted loop playsinline preload="auto"></video>
         </div>
       </div>
@@ -380,22 +386,24 @@ a{color:inherit;text-decoration:none}
 
     <!-- 02 BARULAB -->
     <article class="panel b-barulab has-alt"
-             style="--bg:#E8DDB2;--shot:url('assets/main-barulab.jpg');
+             style="--bg:#E8DDB2;--shot:url('assets/main-barulab.webp');
                     --opy-hero:50%;--opx-hero:58%;--opy-full:50%;--opy-peek:50%">
       <div class="band">
         <div class="fill"></div>
         <div class="crop">
-          <img class="alt" src="assets/main-barulab.jpg" alt="">
+          <img class="alt" src="assets/main-barulab.webp" alt="">
+          <!-- 롤: 첫 컷은 브랜드가 올라오자마자 보이므로 보통 순위, 나머지는 2초 간격으로
+               차례가 오므로 첫 화면 이미지와 대역폭을 다투지 않게 낮은 순위 -->
           <div class="main"><div class="roll">
-          <img src="assets/barulab/01.jpg" alt="">
-          <img src="assets/barulab/02.jpg" alt="">
-          <img src="assets/barulab/03.jpg" alt="">
-          <img src="assets/barulab/04.jpg" alt="">
-          <img src="assets/barulab/05.jpg" alt="">
-          <img src="assets/barulab/06.jpg" alt="">
-          <img src="assets/barulab/07.jpg" alt="">
-          <img src="assets/barulab/08.jpg" alt="">
-          <img src="assets/barulab/01.jpg" alt="" aria-hidden="true">
+          <img src="assets/barulab/01.webp" alt="" decoding="async">
+          <img src="assets/barulab/02.webp" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/barulab/03.webp" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/barulab/04.webp" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/barulab/05.webp" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/barulab/06.webp" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/barulab/07.webp" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/barulab/08.webp" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/barulab/01.webp" alt="" decoding="async" aria-hidden="true">
           </div></div>
         </div>
       </div>
@@ -419,20 +427,20 @@ a{color:inherit;text-decoration:none}
         <div class="crop">
           <img class="alt" src="assets/photo-tambeauty.jpg" alt="">
           <div class="main"><div class="roll">
-          <img src="assets/tam/01.jpg" alt="">
-          <img src="assets/tam/02.jpg" alt="">
-          <img src="assets/tam/03.jpg" alt="">
-          <img src="assets/tam/04.jpg" alt="">
-          <img src="assets/tam/05.jpg" alt="">
-          <img src="assets/tam/06.jpg" alt="">
-          <img src="assets/tam/07.jpg" alt="">
-          <img src="assets/tam/08.jpg" alt="">
-          <img src="assets/tam/01.jpg" alt="" aria-hidden="true">
+          <img src="assets/tam/01.jpg" alt="" decoding="async">
+          <img src="assets/tam/02.jpg" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/tam/03.jpg" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/tam/04.jpg" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/tam/05.jpg" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/tam/06.jpg" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/tam/07.jpg" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/tam/08.jpg" alt="" decoding="async" fetchpriority="low">
+          <img src="assets/tam/01.jpg" alt="" decoding="async" aria-hidden="true">
           </div></div>
         </div>
       </div>
-      <div class="ext e2"><img src="assets/photo-barulab.jpg" style="--oy:52.9%" alt=""></div>
-      <div class="ext e3"><img src="assets/photo-pyderin-hero.jpg" style="--oy:41.1%" alt=""></div>
+      <div class="ext e2"><img src="assets/photo-barulab.webp" style="--oy:52.9%" alt="" decoding="async" fetchpriority="low"></div>
+      <div class="ext e3"><img src="assets/photo-pyderin-hero.webp" style="--oy:41.1%" alt="" decoding="async"></div>
       <a class="label" href="https://tambeauty.kr/" target="_blank" rel="noopener"
          aria-label="tam 사이트로 이동">
       <div class="logo" data-src="assets/logo-tambeauty.png" role="img" aria-label="tam BEAUTY"></div>
@@ -480,21 +488,147 @@ a{color:inherit;text-decoration:none}
   const s4      = document.getElementById('s4');
 
 
-  /* 로고 조각 — 폭/오프셋 모두 %라 화면 크기가 바뀌어도 그대로 맞음 */
+  /* ---------- 로고: 64조각 파도 (캔버스) ----------
+     조각 i 는 (--t-logo + i * --step-logo) 뒤에 아래(100%)에서 제자리로 840ms(--e-soft),
+     투명도는 300ms(linear). 나갈 때는 지연 없이 한꺼번에 되돌아간다. */
   const SLICES = 64;
-  document.querySelectorAll('.logo').forEach(el => {
+  const rootCS = getComputedStyle(document.documentElement);
+  const LG = matchMedia('(prefers-reduced-motion: reduce)').matches
+    ? {delay:0, step:0, move:0, fade:0}
+    : {delay:parseFloat(rootCS.getPropertyValue('--t-logo')),
+       step: parseFloat(rootCS.getPropertyValue('--step-logo')),
+       move:840, fade:300};
+
+  /* cubic-bezier 곡선 (x -> y). --e-soft 를 그대로 재현 */
+  function bezier(x1, y1, x2, y2){
+    const cx = 3*x1, bx = 3*(x2 - x1) - cx, ax = 1 - cx - bx;
+    const cy = 3*y1, by = 3*(y2 - y1) - cy, ay = 1 - cy - by;
+    return x => {
+      if (x <= 0) return 0;
+      if (x >= 1) return 1;
+      let t = x;
+      for (let k = 0; k < 8; k++) {
+        const err = ((ax*t + bx)*t + cx)*t - x, d = (3*ax*t + 2*bx)*t + cx;
+        if (Math.abs(err) < 1e-5 || !d) break;
+        t -= err / d;
+      }
+      return ((ay*t + by)*t + cy)*t;
+    };
+  }
+  const eSoft = bezier(.22, .85, .28, 1), linear = x => x;
+  /* 시작 전엔 from, 끝나면 to */
+  const tw = (from, to, start, dur, ease, now) =>
+    now <= start ? from
+    : (dur <= 0 || now >= start + dur) ? to
+    : from + (to - from) * ease((now - start) / dur);
+
+  const logos = [...document.querySelectorAll('.logo')].map(el => {
     const src = el.dataset.src;
     el.style.setProperty('--src', `url("${src}")`);
-    for (let i = 0; i < SLICES; i++) {
-      const cell = document.createElement('span');
-      cell.className = 'sl';
-      cell.style.setProperty('--i', i);
-      const inner = document.createElement('i');
-      inner.style.backgroundImage = `url("${src}")`;
-      cell.appendChild(inner);
-      el.appendChild(cell);
-    }
+    const cv = document.createElement('canvas');
+    el.appendChild(cv);
+    const f64 = v => new Float64Array(SLICES).fill(v);
+    const L = el._logo = {
+      el, cv, ctx: cv.getContext('2d'), buf: null, edges: null, img: new Image(),
+      on: false, anim: false,
+      yF: f64(1), yT: f64(1), yS: f64(0),      // 세로 위치 (1 = 아래로 완전히 내려가 있음)
+      aF: f64(0), aT: f64(0), aS: f64(0),      // 투명도
+    };
+    L.img.src = src;
+    L.img.decode().then(() => { logoFit(L); logoPaint(L, performance.now()); }, () => {});
+    return L;
   });
+
+  /* 캔버스를 실제 픽셀 크기에 맞추고, 로고를 그 크기로 한 번만 미리 그려 둔다 */
+  function logoFit(L){
+    if (!L.img.naturalWidth) return;
+    const r = L.el.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (L.buf && L.cv.width === w && L.cv.height === h) return;
+    L.cv.width = w; L.cv.height = h;
+    L.buf = L.buf || document.createElement('canvas');
+    L.buf.width = w; L.buf.height = h;
+    const b = L.buf.getContext('2d');
+    b.imageSmoothingQuality = 'high';
+    b.drawImage(L.img, 0, 0, w, h);
+    /* 조각 경계를 정수 픽셀에 맞춘다 — 조각 사이에 세로 줄이 생기지 않게 */
+    L.edges = Array.from({length: SLICES + 1}, (_, i) => Math.round(i * w / SLICES));
+  }
+
+  /* 한 프레임 그리기. 아직 움직이는 조각이 있으면 true */
+  function logoPaint(L, now){
+    const {ctx, cv, buf, edges} = L, H = cv.height;
+    ctx.clearRect(0, 0, cv.width, H);
+    let busy = false;
+    for (let i = 0; i < SLICES; i++) {
+      if (now < L.yS[i] + LG.move || now < L.aS[i] + LG.fade) busy = true;
+      if (!buf) continue;
+      const a = tw(L.aF[i], L.aT[i], L.aS[i], LG.fade, linear, now);
+      const y = tw(L.yF[i], L.yT[i], L.yS[i], LG.move, eSoft, now);
+      if (a <= 0 || y >= 1) continue;
+      const x = edges[i], w = edges[i + 1] - x;
+      ctx.globalAlpha = a;
+      ctx.drawImage(buf, x, 0, w, H, x, y * H, w, H);
+    }
+    ctx.globalAlpha = 1;
+    return busy;
+  }
+
+  let logoRAF = null;
+  function logoTick(now){
+    let busy = false;
+    for (const L of logos) if (L.anim) { L.anim = logoPaint(L, now); busy = busy || L.anim; }
+    logoRAF = busy ? requestAnimationFrame(logoTick) : null;
+  }
+  /* 들어올 땐 왼쪽 조각부터 차례로, 나갈 땐 한꺼번에 — 진행 중이면 지금 위치에서 이어서 */
+  function logoSet(el, on){
+    const L = el && el._logo;
+    if (!L || L.on === on) return;
+    L.on = on;
+    const now = performance.now();
+    for (let i = 0; i < SLICES; i++) {
+      const start = now + (on ? LG.delay + i * LG.step : 0);
+      L.yF[i] = tw(L.yF[i], L.yT[i], L.yS[i], LG.move, eSoft, now);  L.yT[i] = on ? 0 : 1;  L.yS[i] = start;
+      L.aF[i] = tw(L.aF[i], L.aT[i], L.aS[i], LG.fade, linear, now); L.aT[i] = on ? 1 : 0;  L.aS[i] = start;
+    }
+    L.anim = true;
+    if (!logoRAF) logoRAF = requestAnimationFrame(logoTick);
+  }
+
+  /* ---------- 나가는 문구 ----------
+     글자별 현재 상태(들어오던 중이면 그 자리)를 붙잡아 두고 문단 한 덩어리로 내보낸다.
+     끝나면 글자들을 숨김 상태로 되돌려 다음 등장을 준비한다. */
+  function descLeave(d){
+    clearTimeout(d._t);
+    const chs = [...d.querySelectorAll('.ch')];
+    const cur = chs.map(c => { const cs = getComputedStyle(c); return [cs.transform, cs.opacity]; });
+    chs.forEach((c, i) => {
+      c.style.transition = 'none';
+      c.style.transform = cur[i][0];
+      c.style.opacity = cur[i][1];
+    });
+    d.classList.add('leaving');
+    d._t = setTimeout(() => descReset(d), 800);
+  }
+  function descReset(d){
+    clearTimeout(d._t);
+    if (!d.classList.contains('leaving')) return;
+    const chs = d.querySelectorAll('.ch');
+    chs.forEach(c => { c.style.transform = ''; c.style.opacity = ''; });  // 숨김 상태로 (트랜지션 없이)
+    d.classList.remove('leaving');
+    d.offsetWidth;                                                        // 여기서 상태를 확정하고
+    chs.forEach(c => { c.style.transition = ''; });                       // 원래 트랜지션 복구
+  }
+
+  /* 마지막 화면 문구도 같은 방식 — 헤드라인·본문은 글자 크기가 달라 각각 한 덩어리로 */
+  function s4Set(on){
+    if (s4.classList.contains('on') === on) return;
+    s4.querySelectorAll('.s4-h, .s4-p').forEach(on ? descReset : descLeave);
+    s4.classList.toggle('on', on);
+  }
+
+  /* 이미지를 미리 디코딩 — 화면에 올라오는 순간 빈 칸이나 멈칫 없이 바로 그려지게 */
+  const predecode = img => { if (img && img.decode) img.decode().catch(() => {}); };
 
   /* 문구 — 글자 단위로 쪼갬. <br>은 그대로 둔다 */
   function splitDesc(p){
@@ -570,7 +704,7 @@ a{color:inherit;text-decoration:none}
       b0.style.removeProperty('--bar-h');
       b0.style.setProperty('--ly', '0px');
       b0.style.pointerEvents = '';
-      s4.classList.remove('on');
+      s4Set(false);
       return;
     }
 
@@ -603,7 +737,7 @@ a{color:inherit;text-decoration:none}
     bar.style.setProperty('--ly',      pct(-barH * phase(tp, 0, .5)).replace('%','vh'));
     bar.style.pointerEvents = tp > .05 ? 'none' : '';
 
-    s4.classList.toggle('on', tp > .72);
+    s4Set(tp > .72);
     counter.style.opacity = tp > .05 ? '0' : '';
     const r = last.querySelector('.roll');
     if (r && tp > .02) rollStop(r);
@@ -647,22 +781,45 @@ a{color:inherit;text-decoration:none}
       band.style.setProperty('--opy', (cs.getPropertyValue('--opy-' + slot) || '50%').trim());
       band.style.setProperty('--opx', (cs.getPropertyValue('--opx-' + slot) || '50%').trim());
 
+      const d = p.querySelector('.desc');
+      const was = p.classList.contains('is-active');
+      if (was && !active) descLeave(d);      // 클래스를 떼기 전에 글자 상태를 붙잡아야 한다
+      if (active && !was) descReset(d);      // 나가던 중에 되돌아오면 정리하고 다시 등장
       p.classList.toggle('is-active', active);
 
       /* 파도(300ms 지연 + 63*3ms 스태거 + 840ms)가 끝나면 원본 로고로 교체 */
       const lg = p.querySelector('.logo');
       if (lg) {
+        logoSet(lg, active);
         clearTimeout(lg._t);
         if (active) lg._t = setTimeout(() => lg.classList.add('settled'), 1400);
         else lg.classList.remove('settled');
       }
+      /* 메인 자리이거나 왼쪽으로 빠져나가는 중이면 영상·롤을 그대로 보여 준다 */
+      const past = slot === 'full' && !active;
+      p.classList.toggle('show-main', slot === 'full');
       const v = p.querySelector('video');
       if (v) { active ? v.play().catch(() => {}) : v.pause(); }
       const r = p.querySelector('.roll');
-      if (r) { active ? rollStart(r) : rollStop(r); }
+      if (r) { active ? rollStart(r) : past ? rollPause(r) : rollStop(r); }
     });
 
     counter.textContent = scrolled ? String(a + 1).padStart(2,'0') + ' / 03' : '';
+    prepText();
+  }
+
+  /* 글자 레이어 미리 만들기 (.prep) — 지금 올라오는 패널만 남기고 정리한 뒤,
+     파도가 끝나 한가해지면(2초) 다음 한 칸으로 메인이 될 패널을 준비한다.
+     첫 화면에선 브랜드 바로가기로 어디든 갈 수 있으므로 셋 다. */
+  let prepT = null;
+  function prepText(){
+    clearTimeout(prepT);
+    const a = state - 1;
+    panels.forEach((p, i) => p.classList.toggle('prep', i === a));
+    prepT = setTimeout(() => {
+      const next = state === 0 ? [0, 1, 2] : [state, state - 2];
+      panels.forEach((p, i) => p.classList.toggle('prep', next.includes(i)));
+    }, 2000);
   }
 
   /* 이미지 롤(바루랩·탐뷰티) — 메인으로 올라왔을 때만 재생.
@@ -670,6 +827,10 @@ a{color:inherit;text-decoration:none}
      멈춤 1.38s + 이동 0.62s = 컷당 2초.
      이징은 앞이 아주 완만하고 뒤에서 확 당겨지는 곡선 — 슬며시 밀리다 훅 넘어간다. */
   const R_HOLD = 1380, R_MOVE = 620, R_EASE = 'cubic-bezier(.9,0,.25,1)';
+  /* 첫 컷은 패널이 90% 도착(515ms)하고 사진 교차(420ms)가 끝난 뒤에 출발 —
+     이동 후반에 몰린 컷 교체가 패널이 멈춘 뒤(~0.9s)에 일어난다.
+     더 일찍 시작하면 패널이 미끄러지는 도중에 사진이 바뀌어 끊겨 보인다. */
+  const R_FIRST = 520;
   const rolls = new Map();                                   // .roll -> 재생 상태
   document.querySelectorAll('.roll').forEach(el => rolls.set(el,
     { i:0, n: el.children.length - 1, timer:null, resetT:null }));   // n: 복제본 제외
@@ -680,10 +841,16 @@ a{color:inherit;text-decoration:none}
     el.style.transition = 'none';
     el.style.transform  = 'translateY(0%)';
   }
-  function rollStop(el){
+  /* 멈추기만 한다 — 왼쪽으로 빠져나가는 패널은 보이는 컷 그대로 나가고,
+     다시 메인으로 돌아오면 그 컷에서 이어서 돈다 */
+  function rollPause(el){
     const s = rolls.get(el);
     clearTimeout(s.startT);
     if (s.timer) { clearInterval(s.timer); s.timer = null; }
+  }
+  function rollStop(el){
+    const s = rolls.get(el);
+    rollPause(el);
     // 정지 화면으로 넘어가는 페이드가 끝난 뒤에 되감아야 첫 장으로 튀지 않는다
     clearTimeout(s.resetT);
     s.resetT = setTimeout(() => rollReset(el), 460);
@@ -696,12 +863,14 @@ a{color:inherit;text-decoration:none}
       s.i++;
       el.style.transition = `transform ${R_MOVE}ms ${R_EASE}`;
       el.style.transform  = `translateY(${-s.i * 100}%)`;
+      predecode(el.children[s.i + 1]);           // 다음 컷은 멈춰 있는 동안 미리 디코딩
       if (s.i === s.n) setTimeout(() => rollReset(el), R_MOVE + 20);
     };
-    // 브랜드가 메인으로 올라오는 즉시 첫 전환이 시작되도록 —
+    predecode(el.children[1]);
+    // 브랜드가 메인으로 올라오면 곧바로 첫 전환이 시작되도록 —
     // setInterval 은 첫 실행 전에도 항상 한 주기(R_HOLD+R_MOVE)를 기다리므로
     // 첫 스텝만 짧게 예약하고, 이후는 정상 주기로 이어간다.
-    s.startT = setTimeout(step, 60);
+    s.startT = setTimeout(step, R_FIRST);
     s.timer = setInterval(step, R_HOLD + R_MOVE);
   }
 
@@ -823,7 +992,21 @@ a{color:inherit;text-decoration:none}
   const BRANDKEY = p => p.classList.contains('b-pyderin') ? 'pyderin'
                       : p.classList.contains('b-barulab') ? 'barulab' : 'tam';
 
+  /* 일본어·중국어 본문 폰트는 그 언어를 고를 때만 받는다.
+     (<head> 에 두면 한국어 방문자도 이 CSS 를 기다리느라 첫 화면이 늦게 뜬다)
+     언어 버튼에 마우스를 올리거나 포커스하면 미리 받기 시작한다. */
+  const CJK = {ja:'Noto+Sans+JP', zh:'Noto+Sans+SC'}, cjkLoaded = {};
+  function loadCJK(l){
+    if (!CJK[l] || cjkLoaded[l]) return;
+    cjkLoaded[l] = true;
+    const k = document.createElement('link');
+    k.rel = 'stylesheet';
+    k.href = `https://fonts.googleapis.com/css2?family=${CJK[l]}:wght@400;500&display=swap`;
+    document.head.appendChild(k);
+  }
+
   function setLang(l){
+    loadCJK(l);
     document.documentElement.lang = l;
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const t = I18N[l][el.dataset.i18n];
@@ -844,10 +1027,15 @@ a{color:inherit;text-decoration:none}
     document.querySelectorAll('#langs button').forEach(b =>
       b.classList.toggle('on', b.dataset.lang === l));
   }
-  document.getElementById('langs').addEventListener('click', e => {
+  const langs = document.getElementById('langs');
+  langs.addEventListener('click', e => {
     const b = e.target.closest('button[data-lang]');
     if (b) setLang(b.dataset.lang);
   });
+  ['pointerover', 'focusin'].forEach(t => langs.addEventListener(t, e => {
+    const b = e.target.closest('button[data-lang]');
+    if (b) loadCJK(b.dataset.lang);
+  }));
 
   /* 브랜드명 클릭 -> 해당 소개 화면으로 */
   document.querySelector('.brandnav').addEventListener('click', e => {
@@ -862,7 +1050,11 @@ a{color:inherit;text-decoration:none}
     document.documentElement.style.setProperty(
       '--s', Math.min(innerWidth / 1920, innerHeight / 1080));
   };
-  addEventListener('resize', () => { fit(); indexChars(); });
+  addEventListener('resize', () => {
+    fit(); indexChars();
+    const now = performance.now();
+    logos.forEach(L => { logoFit(L); logoPaint(L, now); });
+  });
   fit();
   indexChars();
 
@@ -870,6 +1062,13 @@ a{color:inherit;text-decoration:none}
 
   layout();
   applyTP();
+
+  /* 첫 화면이 다 뜬 뒤 한가할 때, 다음 브랜드가 올라오는 순간 바로 보여야 할 이미지
+     (롤 첫 컷, 마지막 컬럼 사진)를 미리 디코딩해 둔다 */
+  addEventListener('load', () => {
+    const idle = window.requestIdleCallback || (f => setTimeout(f, 300));
+    idle(() => document.querySelectorAll('.roll img:first-child, .ext img').forEach(predecode));
+  });
 })();
 </script>
 </body>
