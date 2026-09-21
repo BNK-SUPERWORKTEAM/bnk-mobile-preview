@@ -8,6 +8,28 @@
      일본어·중국어 폰트(Noto)는 그 언어를 고를 때만 스크립트가 불러온다 (첫 화면 렌더링을 막지 않게) -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="assets/fonts/pretendard.css">
+<!-- 첫 화면 언어: ?lang= 지정 > 방문자가 전에 고른 언어 > 시스템 언어 > 영어(지원하지 않는 언어).
+     본문이 그려지기 전에 정해 두어야 한국어가 잠깐 보였다 바뀌지 않고,
+     일본어·중국어 폰트도 이 시점부터 받기 시작한다. 본문 스크립트는 html[lang] 을 그대로 쓴다. -->
+<script>
+(function(){
+  var OK = ['ko', 'en', 'zh', 'ja'];                     // zh-TW·zh-HK 도 zh(간체)로
+  function pick(t){ t = String(t || '').toLowerCase().split('-')[0]; return OK.indexOf(t) >= 0 ? t : null; }
+  var saved = null;
+  try { saved = pick(localStorage.getItem('bnk-integrated-page:lang')); } catch (e) {}
+  var sys = null, list = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language];
+  for (var i = 0; i < list.length && !sys; i++) sys = pick(list[i]);
+  var lang = pick(new URLSearchParams(location.search).get('lang')) || saved || sys || 'en';
+  document.documentElement.lang = lang;
+  var fam = {ja: 'Noto+Sans+JP', zh: 'Noto+Sans+SC'}[lang];
+  if (fam) {
+    var k = document.createElement('link');
+    k.rel = 'stylesheet'; k.setAttribute('data-cjk', lang);
+    k.href = 'https://fonts.googleapis.com/css2?family=' + fam + ':wght@400;500&display=swap';
+    document.head.appendChild(k);
+  }
+})();
+</script>
 <!-- 개발용 전환 계측: 주소 끝에 ?debug 또는 ?speed=0.7 을 붙일 때만 불러온다 (tools/debug.js) -->
 <script>
 if (/[?&](debug|speed)\b/.test(location.search))
@@ -995,12 +1017,13 @@ a{color:inherit;text-decoration:none}
   /* 일본어·중국어 본문 폰트는 그 언어를 고를 때만 받는다.
      (<head> 에 두면 한국어 방문자도 이 CSS 를 기다리느라 첫 화면이 늦게 뜬다)
      언어 버튼에 마우스를 올리거나 포커스하면 미리 받기 시작한다. */
-  const CJK = {ja:'Noto+Sans+JP', zh:'Noto+Sans+SC'}, cjkLoaded = {};
+  /* <head> 가 첫 화면 언어용으로 이미 넣었으면 다시 받지 않는다 */
+  const CJK = {ja:'Noto+Sans+JP', zh:'Noto+Sans+SC'};
   function loadCJK(l){
-    if (!CJK[l] || cjkLoaded[l]) return;
-    cjkLoaded[l] = true;
+    if (!CJK[l] || document.querySelector(`link[data-cjk="${l}"]`)) return;
     const k = document.createElement('link');
     k.rel = 'stylesheet';
+    k.dataset.cjk = l;
     k.href = `https://fonts.googleapis.com/css2?family=${CJK[l]}:wght@400;500&display=swap`;
     document.head.appendChild(k);
   }
@@ -1028,9 +1051,12 @@ a{color:inherit;text-decoration:none}
       b.classList.toggle('on', b.dataset.lang === l));
   }
   const langs = document.getElementById('langs');
+  /* 직접 고른 언어는 기억해 두었다가 다음 방문 때도 그 언어로 (시스템 언어보다 우선) */
   langs.addEventListener('click', e => {
     const b = e.target.closest('button[data-lang]');
-    if (b) setLang(b.dataset.lang);
+    if (!b) return;
+    setLang(b.dataset.lang);
+    try { localStorage.setItem('bnk-integrated-page:lang', b.dataset.lang); } catch (err) {}
   });
   ['pointerover', 'focusin'].forEach(t => langs.addEventListener(t, e => {
     const b = e.target.closest('button[data-lang]');
@@ -1058,7 +1084,7 @@ a{color:inherit;text-decoration:none}
   fit();
   indexChars();
 
-  setLang('ko');
+  setLang(document.documentElement.lang);    // <head> 에서 정한 첫 화면 언어
 
   layout();
   applyTP();
