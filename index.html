@@ -25,7 +25,7 @@
   for (var i = 0; i < list.length && !sys; i++) sys = pick(list[i]);
   var lang = pick(new URLSearchParams(location.search).get('lang')) || saved || sys || 'en';
   document.documentElement.lang = lang;
-  var fam = {ja: 'Noto+Sans+JP', zh: 'Noto+Sans+SC'}[lang];
+  var fam = {ja: 'Noto+Sans+JP', zh: 'Noto+Sans+TC'}[lang];
   if (fam) {
     var k = document.createElement('link');
     k.rel = 'stylesheet'; k.setAttribute('data-cjk', lang);
@@ -279,6 +279,8 @@ a{color:inherit;text-decoration:none}
 .langbox{position:relative;display:flex;align-items:center}
 .langtoggle{display:none}
 .brandnav button{position:relative}
+.navbox{position:relative;display:flex;align-items:center}
+.navtoggle{display:none}
 
 
 /* ---------- 스크롤 안내 ----------
@@ -396,6 +398,51 @@ a{color:inherit;text-decoration:none}
    로고/문구/버튼처럼 "가로 폭이 넉넉한 데스크톱 프레임" 전제로 짠
    내부 배치만 세로 스택으로 다시 짠다.
    =========================================================== */
+/* ---------- 사업자 정보 푸터 — 마지막 화면에서만 ---------- */
+.biz{
+  position:fixed;left:0;right:0;bottom:0;z-index:22;
+  background:#fff;color:#111;
+  border-top:1px solid rgba(0,0,0,.08);
+  padding:calc(26 * var(--s) * 1px) calc(60 * var(--s) * 1px) calc(22 * var(--s) * 1px);
+  font-size:calc(15 * var(--s) * 1px);line-height:1.6;
+  opacity:0;pointer-events:none;transform:translateY(10px);
+  transition:opacity 420ms var(--e-soft),transform 520ms var(--e-soft);
+}
+.s4.on ~ .biz{opacity:1;pointer-events:auto;transform:none;transition-delay:180ms}
+.biz-top{display:flex;align-items:center;gap:calc(14 * var(--s) * 1px)}
+.biz-logo{
+  font-size:calc(34 * var(--s) * 1px);font-weight:800;letter-spacing:-.02em;line-height:1;
+  font-family:Anton,Impact,'Arial Black',sans-serif;
+}
+.biz-logo sup{font-size:.34em;vertical-align:super;font-weight:600}
+.biz a{color:inherit;text-decoration:none}
+.biz-sns{
+  width:calc(30 * var(--s) * 1px);height:calc(30 * var(--s) * 1px);border-radius:50%;
+  background:#c9c9c9;display:grid;place-items:center;transition:background 220ms ease;
+}
+.biz-sns:hover{background:#9b9b9b}
+.biz-sns svg{width:62%;height:62%;display:block}
+.biz-toggle{
+  background:none;border:0;font:inherit;   /* 브라우저 기본 버튼 테두리 제거 */
+  margin-left:auto;display:flex;align-items:center;gap:calc(30 * var(--s) * 1px);
+  font-size:calc(15 * var(--s) * 1px);color:#111;cursor:pointer;
+}
+.biz-toggle em{font-style:normal;font-size:.9em;transition:transform 260ms var(--e-soft)}
+.biz.closed .biz-toggle em{transform:rotate(180deg)}
+.biz-body{
+  margin-top:calc(16 * var(--s) * 1px);
+  overflow:hidden;transition:max-height 420ms var(--e-soft),opacity 260ms linear;
+  max-height:calc(240 * var(--s) * 1px);opacity:1;
+}
+.biz.closed .biz-body{max-height:0;opacity:0;margin-top:0}
+.biz-row{display:flex;flex-wrap:wrap;gap:0 calc(34 * var(--s) * 1px);color:#555}
+.biz-row b{color:#111;font-weight:600}
+.biz-row .biz-co{margin-right:calc(6 * var(--s) * 1px)}
+.biz-links{margin-top:calc(12 * var(--s) * 1px);display:flex;gap:calc(16 * var(--s) * 1px)}
+.biz-links a{color:#111;font-weight:600}
+.biz-links a:hover{text-decoration:underline}
+.biz-copy{margin-top:calc(6 * var(--s) * 1px);color:#aaa}
+
 @media (max-width:820px){
   /* 들어오는 두 장(.ext)이 브랜드 바(.label, z-index:2)보다 아래라, 바가 먼저
      비켜주지 않으면 보이지 않았다 -> 바가 빠지는 동안 그 아래가 흰 바닥으로
@@ -451,10 +498,42 @@ a{color:inherit;text-decoration:none}
     padding:0 calc(18 * var(--sm) * 1px)!important;
     flex-direction:row;align-items:center;
   }
-  .brandnav{gap:calc(16 * var(--sm) * 1px)}
-  /* 손가락 탭 영역만 넓힌다 — 레이아웃과 롤 모션(overflow:hidden)은 그대로 */
-  .brandnav button::after{content:"";position:absolute;inset:-12px -10px}
-  .brandnav button{font-size:calc(15 * var(--sm) * 1px)!important}
+  /* 브랜드 선택 — 세 개를 늘어놓는 대신 왼쪽 햄버거로 접는다 */
+  .herobar .navtoggle{
+    display:flex!important;position:relative;flex-direction:column;justify-content:center;
+    align-items:flex-start;gap:calc(5 * var(--sm) * 1px);
+    width:calc(26 * var(--sm) * 1px);height:calc(26 * var(--sm) * 1px);padding:0!important;
+  }
+  .herobar .navtoggle span{
+    display:block;width:calc(22 * var(--sm) * 1px);height:1.6px;background:#fff;border-radius:2px;
+    transition:transform 280ms var(--e-soft);
+  }
+  .navbox.open .navtoggle span:nth-child(1){transform:translateY(calc(3.3 * var(--sm) * 1px)) rotate(45deg)}
+  .navbox.open .navtoggle span:nth-child(2){transform:translateY(calc(-3.3 * var(--sm) * 1px)) rotate(-45deg)}
+  .herobar .navtoggle::after{content:"";position:absolute;inset:-10px}   /* 탭 영역 확대 */
+
+  .brandnav{
+    position:absolute;top:calc(100% + 10px);left:0;z-index:30;
+    flex-direction:column;align-items:stretch;gap:0;
+    min-width:calc(136 * var(--sm) * 1px);padding:calc(6 * var(--sm) * 1px);
+    border-radius:calc(14 * var(--sm) * 1px);
+    background:rgba(18,18,18,.92);backdrop-filter:blur(10px);
+    box-shadow:0 12px 34px rgba(0,0,0,.34);
+    opacity:0;transform:translateY(-6px) scale(.97);pointer-events:none;
+    transition:opacity 180ms ease,transform 220ms var(--e-soft);
+    text-shadow:none;
+  }
+  .navbox.open .brandnav{opacity:1;transform:none;pointer-events:auto}
+  .brandnav button{
+    font-size:calc(14 * var(--sm) * 1px)!important;
+    height:auto!important;overflow:visible!important;
+    min-height:calc(44 * var(--sm) * 1px);
+    padding:0 calc(12 * var(--sm) * 1px)!important;
+    display:flex;align-items:center;justify-content:flex-start;
+    border-radius:calc(9 * var(--sm) * 1px);opacity:.78;
+  }
+  /* 롤 모션의 잘라내기는 버튼이 아니라 안쪽 span 이 맡는다 */
+  .brandnav button span{height:1.4em;overflow:hidden}
 
   /* 언어 선택 — 네 개를 한 줄에 펼치면 브랜드명(언어마다 폭이 달라진다)과
      부딪히므로, 폭이 항상 같은 코드 버튼 하나로 접고 탭하면 목록을 연다.
@@ -522,6 +601,20 @@ a{color:inherit;text-decoration:none}
     100%     {transform:translateY(0) scale(1,1)}
   }
 
+  /* 사업자 정보 — 좁은 폭이라 세로로 쌓고 기본은 접어 둔다 */
+  .biz{
+    padding:calc(14 * var(--sm) * 1px) calc(20 * var(--sm) * 1px)
+            calc(14 * var(--sm) * 1px + env(safe-area-inset-bottom,0px));
+    font-size:calc(11.5 * var(--sm) * 1px);line-height:1.55;
+  }
+  .biz-top{gap:calc(9 * var(--sm) * 1px)}
+  .biz-logo{font-size:calc(21 * var(--sm) * 1px)}
+  .biz-sns{width:calc(23 * var(--sm) * 1px);height:calc(23 * var(--sm) * 1px)}
+  .biz-toggle{font-size:calc(12 * var(--sm) * 1px);gap:calc(8 * var(--sm) * 1px)}
+  .biz-body{margin-top:calc(12 * var(--sm) * 1px);max-height:calc(210 * var(--sm) * 1px)}
+  .biz-row{flex-direction:column;gap:calc(2 * var(--sm) * 1px)}
+  .biz-links{margin-top:calc(10 * var(--sm) * 1px);gap:calc(14 * var(--sm) * 1px)}
+
   /* 마지막 문구 화면 — 이미지 3장이 전체화면으로 다 나온 뒤, 한 번 더 스크롤해야
      나오는 완전히 별도의 흰 화면. 사진 위에 겹치지 않도록 이미지 뷰를 위로
      밀어내고 그 자리에 이 화면이 아래에서 올라와 교체된다(오버레이 아님). */
@@ -553,6 +646,7 @@ a{color:inherit;text-decoration:none}
     font-size:calc(10 * var(--sm) * 1px)!important;
   }
 }
+
 </style>
 </head>
 <body>
@@ -659,17 +753,20 @@ a{color:inherit;text-decoration:none}
 
   <!-- 메인 화면 UI — 피더린 패널 위에 얹힌다 -->
   <div class="herobar" id="herobar">
-    <nav class="brandnav">
-      <button type="button" data-go="1" data-i18n="b1"><span><i>피더린</i><i>피더린</i></span></button>
-      <button type="button" data-go="2" data-i18n="b2"><span><i>바루랩</i><i>바루랩</i></span></button>
-      <button type="button" data-go="3" data-i18n="b3"><span><i>탐뷰티</i><i>탐뷰티</i></span></button>
-    </nav>
+    <div class="navbox" id="navbox">
+      <button type="button" class="navtoggle" id="navtoggle" aria-label="브랜드 선택" aria-expanded="false"><span></span><span></span></button>
+      <nav class="brandnav">
+        <button type="button" data-go="1" data-i18n="b1"><span><i>피더린</i><i>피더린</i></span></button>
+        <button type="button" data-go="2" data-i18n="b2"><span><i>바루랩</i><i>바루랩</i></span></button>
+        <button type="button" data-go="3" data-i18n="b3"><span><i>탐뷰티</i><i>탐뷰티</i></span></button>
+      </nav>
+    </div>
     <div class="langbox" id="langbox">
       <button type="button" class="langtoggle" id="langtoggle" aria-label="언어 선택" aria-expanded="false"><span id="langcode">KO</span><em>▾</em></button>
       <div class="langs" id="langs">
         <button type="button" data-lang="en" lang="en">English</button>
         <button type="button" data-lang="ko" lang="ko" class="on">한국어</button>
-        <button type="button" data-lang="zh" lang="zh">中文</button>
+        <button type="button" data-lang="zh" lang="zh-TW">繁體中文</button>
         <button type="button" data-lang="ja" lang="ja">日本語</button>
       </div>
     </div>
@@ -680,6 +777,42 @@ a{color:inherit;text-decoration:none}
     <h2 class="s4-h" lang="en">ADVANCED BEAUTY SOLUTIONS,<br>TAILORED TO YOUR NEEDS</h2>
     <p class="s4-p"></p>
   </div>
+
+  <!-- 사업자 정보 — 마지막 화면에서 하단에 뜬다 (pyderin.com 푸터와 같은 구성) -->
+  <footer class="biz" id="biz">
+    <div class="biz-top">
+      <span class="biz-logo">PYDERIN<sup>&reg;</sup></span>
+      <a class="biz-sns" href="https://www.instagram.com/pyderin" target="_blank" rel="noopener" aria-label="피더린 인스타그램">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="4" y="4" width="16" height="16" rx="5" fill="none" stroke="#fff" stroke-width="1.7"/>
+          <circle cx="12" cy="12" r="3.6" fill="none" stroke="#fff" stroke-width="1.7"/>
+          <circle cx="16.7" cy="7.3" r="1.1" fill="#fff"/>
+        </svg>
+      </a>
+      <a class="biz-sns" href="https://www.youtube.com/@pyderin" target="_blank" rel="noopener" aria-label="피더린 유튜브">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="6" width="18" height="12" rx="3.4" fill="#fff"/>
+          <path d="M10.4 9.3v5.4L15 12z" fill="#9b9b9b"/>
+        </svg>
+      </a>
+      <button type="button" class="biz-toggle" id="bizToggle" aria-expanded="true">사업자 정보<em>&#9652;</em></button>
+    </div>
+    <div class="biz-body" id="bizBody">
+      <p class="biz-row">
+        <b class="biz-co">(주)피더린</b>
+        <span><b>주소</b> 06127 서울특별시 강남구 봉은사로22길 18, 1층(역삼동)</span>
+        <span><b>대표 전화</b> 1666-7247</span>
+        <span><b>이메일</b> info@pyderin.com</span>
+        <span><b>대표자명</b> 김영훈</span>
+      </p>
+      <p class="biz-row"><span><b>개인정보보호책임자</b> 김영훈</span></p>
+      <p class="biz-links">
+        <a href="https://pyderin.com/" target="_blank" rel="noopener">[개인정보처리방침]</a>
+        <a href="https://pyderin.com/" target="_blank" rel="noopener">[PDRN 가이드]</a>
+      </p>
+      <p class="biz-copy">&copy;PYDERIN Co., Ltd. All Rights Reserved.</p>
+    </div>
+  </footer>
 
   <div class="cue" id="cue"><span>SCROLL</span><i><b></b></i></div>
 
@@ -1049,6 +1182,7 @@ a{color:inherit;text-decoration:none}
   const easeInOut = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
   const TW_TP  = 1600;   // 이미지가 전체화면으로 자라 3장으로 나뉘는 구간
   const TW_TP2 = 1100;   // 이미지 화면 <-> 흰 문구 화면 교체
+  const TW_TPD = 1200;   // 데스크톱 한 번에 전개   // 이미지 화면 <-> 흰 문구 화면 교체
   let tpTw = null, tp2Tw = null;
   function tpStop(){ if (tpTw) cancelAnimationFrame(tpTw); tpTw = null;
                      if (tpRAF) cancelAnimationFrame(tpRAF); tpRAF = null; }
@@ -1254,6 +1388,7 @@ a{color:inherit;text-decoration:none}
     if (next === state || locked) return;
     state = next; locked = true;
     document.getElementById('langbox').classList.remove('open');
+    document.getElementById('navbox').classList.remove('open');
     layout();
     applyTP();   // 탐뷰티로 막 넘어왔을 때 라벨 바가 방금 계산과 어긋나지 않도록 즉시 동기화
     setTimeout(() => { locked = false; }, 700);
@@ -1295,22 +1430,19 @@ a{color:inherit;text-decoration:none}
       }
       return;
     } else if (state === 3) {
-      /* 데스크톱 — 기존 그대로 */
-      if (!fresh) {
-        acc += deltaY;
-        if (Math.abs(acc) < STEP_CONT) return;
-        acc = 0; fresh = true;
+      /* 데스크톱도 모바일과 같은 방식 — 스크롤량에 비례해 따라가면 조금씩
+         여러 번 굴려야 끝까지 가서, 살짝 굴린 사람은 중간에 멈춘 화면을 본다.
+         문턱값만 넘으면 한 번에 마지막 화면까지 보낸다. */
+      acc += deltaY;
+      if (Math.abs(acc) < STEP) return;
+      const dir = Math.sign(acc);
+      acc = 0;
+      const hold = () => { locked = true; setTimeout(() => { locked = false; }, TW_TPD + 120); };
+      if (dir > 0) {
+        if (tp >= 1) return;                       // 마지막 화면에서 고정
+        hold(); tpTo(1, TW_TPD); return;
       }
-      if (deltaY > 0) {
-        if (tpTarget >= 1) return;
-        tpTarget = clamp(tpTarget + deltaY / TP_SPAN);
-        tpKick(); return;
-      }
-      if (tpTarget > 0) {
-        tpTarget = clamp(tpTarget + deltaY / TP_SPAN);
-        if (tpTarget === 0) fresh = false;
-        tpKick(); return;
-      }
+      if (tp > 0) { hold(); tpTo(0, TW_TPD); return; }
     }
 
     acc += deltaY;
@@ -1360,7 +1492,7 @@ a{color:inherit;text-decoration:none}
   const I18N = {
     ko:{b1:'피더린',b2:'바루랩',b3:'탐뷰티',scroll:'스크롤'},
     en:{b1:'PYDERIN',b2:'BARULAB',b3:'TAM BEAUTY',scroll:'SCROLL'},
-    zh:{b1:'PYDERIN',b2:'BARULAB',b3:'TAM BEAUTY',scroll:'滚动'},
+    zh:{b1:'PYDERIN',b2:'BARULAB',b3:'TAM BEAUTY',scroll:'捲動'},
     ja:{b1:'PYDERIN',b2:'BARULAB',b3:'TAM BEAUTY',scroll:'スクロール'},
   };
   const DESC = {
@@ -1375,9 +1507,9 @@ a{color:inherit;text-decoration:none}
       tam:'Rooted in plant-derived ingredients and clean processes,<br>a clean-beauty cosmetic lifestyle brand.',
     },
     zh:{
-      pyderin:'以医疗专业与成分透明为基础，<br>专注肌肤自我修复的 PDRN 专业品牌。',
-      barulab:'以二十年皮肤科学研究与纯素低刺激成分为基础，<br>专注于调理肌肤的护肤专业品牌。',
-      tam:'以植物来源原料与环保工艺为基础，<br>专注纯净美妆的化妆品生活方式品牌。',
+      pyderin:'以醫療專業與成分透明為基礎，<br>專注肌膚自我修復的 PDRN 專業品牌。',
+      barulab:'以二十年皮膚科學研究與純素低刺激成分為基礎，<br>專注於調理肌膚的保養專業品牌。',
+      tam:'以植物來源原料與環保工藝為基礎，<br>專注純淨美妝的美妝生活風格品牌。',
     },
     ja:{
       pyderin:'医療の専門性と成分の透明性をもとに、<br>肌本来の回復に向き合うPDRN専門ブランドです。',
@@ -1406,14 +1538,14 @@ a{color:inherit;text-decoration:none}
       +'With the expertise each has built in its own field, they propose beauty solutions for every individual need.<br>'
       +'Offering tailored choices within a broad portfolio<br>'
       +'is our role and our value.',
-    zh:'用于抗衰老的 PDRN、<br>'
-      +'源自自然的纯净美妆，<br>'
-      +'以及尖端生物技术。<br><br>'
-      +'PYDERIN、BARULAB 与 TAM BEAUTY 是<br>'
-      +'拓展专业美妆产业可能性的三大代表品牌。<br><br>'
-      +'它们以各自领域积累的专业，为每一位顾客提出契合其需求的美妆方案。<br>'
-      +'在广泛的产品组合中提供量身定制的选择，<br>'
-      +'正是我们的角色与价值。',
+    zh:'用於抗老的 PDRN、<br>'
+      +'源自自然的純淨美妝，<br>'
+      +'以及尖端生物技術。<br><br>'
+      +'PYDERIN、BARULAB 與 TAM BEAUTY<br>'
+      +'是拓展專業美妝產業可能性的三大代表品牌。<br><br>'
+      +'它們以各自領域累積的專業，為每一位顧客提出契合其需求的美妝方案。<br>'
+      +'在廣泛的產品組合中提供量身訂製的選擇，<br>'
+      +'正是我們的角色與價值。',
     ja:'アンチエイジングのための PDRN、<br>'
       +'自然から見つけたピュアなクリーンビューティー、<br>'
       +'そして最先端のバイオ技術まで。<br><br>'
@@ -1431,7 +1563,7 @@ a{color:inherit;text-decoration:none}
      (<head> 에 두면 한국어 방문자도 이 CSS 를 기다리느라 첫 화면이 늦게 뜬다)
      언어 버튼에 마우스를 올리거나 포커스하면 미리 받기 시작한다. */
   /* <head> 가 첫 화면 언어용으로 이미 넣었으면 다시 받지 않는다 */
-  const CJK = {ja:'Noto+Sans+JP', zh:'Noto+Sans+SC'};
+  const CJK = {ja:'Noto+Sans+JP', zh:'Noto+Sans+TC'};   // 대만 번체
   function loadCJK(l){
     if (!CJK[l] || document.querySelector(`link[data-cjk="${l}"]`)) return;
     const k = document.createElement('link');
@@ -1462,9 +1594,22 @@ a{color:inherit;text-decoration:none}
     indexChars();
     document.querySelectorAll('#langs button').forEach(b =>
       b.classList.toggle('on', b.dataset.lang === l));
-    langcode.textContent = {ko:'KO', en:'EN', zh:'ZH', ja:'JA'}[l];
+    langcode.textContent = {ko:'KO', en:'EN', zh:'TW', ja:'JA'}[l];
     langbox.classList.remove('open');
   }
+  const biz = document.getElementById('biz');
+  if (isMobile) biz.classList.add('closed');   // 좁은 화면에서 본문을 가리지 않게
+  document.getElementById('bizToggle').addEventListener('click', e => {
+    biz.classList.toggle('closed');
+    e.currentTarget.setAttribute('aria-expanded', !biz.classList.contains('closed'));
+  });
+
+  const navbox = document.getElementById('navbox');
+  document.getElementById('navtoggle').addEventListener('click', e => {
+    e.stopPropagation();
+    navbox.classList.toggle('open');
+    e.currentTarget.setAttribute('aria-expanded', navbox.classList.contains('open'));
+  });
   const langbox  = document.getElementById('langbox');
   const langcode = document.getElementById('langcode');
   const langs    = document.getElementById('langs');
@@ -1484,6 +1629,7 @@ a{color:inherit;text-decoration:none}
   /* 목록 밖을 누르면 닫는다 */
   addEventListener('pointerdown', e => {
     if (!e.target.closest('#langbox')) langbox.classList.remove('open');
+    if (!e.target.closest('#navbox'))  navbox.classList.remove('open');
   });
   ['pointerover', 'focusin'].forEach(t => langs.addEventListener(t, e => {
     const b = e.target.closest('button[data-lang]');
@@ -1493,7 +1639,7 @@ a{color:inherit;text-decoration:none}
   /* 브랜드명 클릭 -> 해당 소개 화면으로 */
   document.querySelector('.brandnav').addEventListener('click', e => {
     const b = e.target.closest('button[data-go]');
-    if (b) { tpReset(); go(+b.dataset.go); }
+    if (b) { navbox.classList.remove('open'); tpReset(); go(+b.dataset.go); }
   });
 
 
